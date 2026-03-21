@@ -346,7 +346,7 @@ class _HomePageState extends State<HomePage> {
                         context,
                         MaterialPageRoute(
                           builder: (_) =>
-                              const ControlPanel(),
+                              ControlPanel(ssh: widget.ssh),
                         ),
                       );
                     },

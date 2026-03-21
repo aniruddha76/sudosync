@@ -1,85 +1,245 @@
 import 'package:flutter/material.dart';
+import 'package:sleek_circular_slider/sleek_circular_slider.dart';
+import '../service/ssh_service.dart';
 
-class ControlPanel extends StatelessWidget {
-  const ControlPanel({super.key});
+class ControlPanel extends StatefulWidget {
+  final SSHService ssh;
+
+  const ControlPanel({super.key, required this.ssh});
+
+  @override
+  State<ControlPanel> createState() => _ControlPanelState();
+}
+
+class _ControlPanelState extends State<ControlPanel> {
+
+  double volume = 0;
+  double brightness = 0;
+  bool isMuted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchInitialValues();
+  }
+
+  Future<void> run(String cmd) async {
+    await widget.ssh.run(cmd);
+  }
+
+  Future<void> fetchInitialValues() async {
+
+    /// GET VOLUME
+    String volOutput =
+        await widget.ssh.run("pactl get-sink-volume @DEFAULT_SINK@");
+
+    /// GET MUTE STATUS
+    String muteOutput =
+        await widget.ssh.run("pactl get-sink-mute @DEFAULT_SINK@");
+
+    /// GET BRIGHTNESS
+    String brightnessOutput =
+        await widget.ssh.run("brightnessctl -m");
+
+    double vol = double.parse(
+        volOutput.split("/")[1].trim().replaceAll("%", ""));
+
+    bool muted = muteOutput.contains("yes");
+
+    double bright = double.parse(
+        brightnessOutput.split(",")[3].replaceAll("%", ""));
+
+    setState(() {
+      volume = vol;
+      brightness = bright;
+      isMuted = muted;
+    });
+  }
+
+  Widget actionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap, 
+    Color? backgroundColor,
+  }) {
+    return Column(
+      children: [
+        FloatingActionButton(
+          onPressed: onTap,
+          backgroundColor: backgroundColor ?? const Color.fromARGB(255, 255, 255, 255),
+          child: Icon(icon, color: Colors.black),
+        ),
+        const SizedBox(height: 8),
+        Text(label, style: const TextStyle(color: Colors.white)),
+      ],
+    );
+  }
+
+  Widget brightnessSlider() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+
+        const Text(
+          "Brightness",
+          style: TextStyle(color: Colors.white, fontSize: 16),
+        ),
+
+        Slider(
+          value: brightness,
+          min: 0,
+          max: 100,
+          activeColor: const Color(0xFFB6FF00),
+          label: brightness.round().toString(),
+
+          onChanged: (v) async {
+            setState(() => brightness = v);
+            await run("brightnessctl set ${v.round()}%");
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget volumeCircular() {
+    return Column(
+      children: [
+
+        const Text(
+          "Volume",
+          style: TextStyle(color: Colors.white, fontSize: 18),
+        ),
+
+        const SizedBox(height: 10),
+
+        SleekCircularSlider(
+          min: 0,
+          max: 100,
+          initialValue: volume,
+
+          appearance: CircularSliderAppearance(
+
+            size: 250,
+
+            customWidths: CustomSliderWidths(
+              progressBarWidth: 15,
+              handlerSize: 8,
+              trackWidth: 10,
+            ),
+
+            customColors: CustomSliderColors(
+              progressBarColor: const Color(0xFFB6FF00),
+              trackColor: Colors.grey.shade800,
+              dotColor: Colors.black,
+              hideShadow: true,
+            ),
+
+            infoProperties: InfoProperties(
+              modifier: (double value) {
+                return "${value.round()}%";
+              },
+              mainLabelStyle: const TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+              ),
+            ),
+          ),
+
+          onChange: (v) {
+            setState(() => volume = v);
+          },
+
+          onChangeEnd: (v) async {
+            await run(
+                "pactl set-sink-volume @DEFAULT_SINK@ ${v.round()}%");
+          },
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-      appBar: AppBar(title: const Text('Control Panel')),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    FloatingActionButton(
-                      onPressed: null, 
-                      backgroundColor: Colors.white,
-                      child: Icon(Icons.lock, color: Color.fromARGB(255, 8, 6, 6),),
-                    ),
-                    SizedBox(height: 8),
-                    Text('Lock', style: TextStyle(color: Colors.white)),
-                  ],
-                ),
 
-                SizedBox(width: 20),
+      backgroundColor: Colors.black,
 
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    FloatingActionButton(
-                      onPressed: null, 
-                      backgroundColor: Colors.white,
-                      child: Icon(Icons.power_settings_new, color: Color.fromARGB(255, 8, 6, 6),),
-                    ),
-                    SizedBox(height: 8),
-                    Text('Shutdown', style: TextStyle(color: Colors.white)),
-                  ],
-                ),
-              ],
-            ),
+      appBar: AppBar(
+        title: const Text("Control Panel"),
+        backgroundColor: Colors.black,
+      ),
 
-            SizedBox(height: 20),
+      body: SingleChildScrollView(
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    FloatingActionButton(
-                      onPressed: null, 
-                      backgroundColor: Colors.white,
-                      child: Icon(Icons.restart_alt, color: Color.fromARGB(255, 8, 6, 6),),
-                    ),
-                    SizedBox(height: 8),
-                    Text('Restart', style: TextStyle(color: Colors.white)),
-                  ],
-                ),
-                
-                SizedBox(width: 20),
-                
-                // Column(
-                //   mainAxisAlignment: MainAxisAlignment.center,
-                //   children: [
-                //     FloatingActionButton(
-                //       onPressed: null, 
-                //       backgroundColor: Colors.white,
-                //       child: Icon(Icons.add_circle, color: Color.fromARGB(255, 8, 6, 6),),
-                //     ),
-                //     SizedBox(height: 8),
-                //     Text('Suspend', style: TextStyle(color: Colors.white)),
-                //   ],
-                // ),
-              ],
-            ), 
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+
+          child: Column(
+            children: [
+
+              /// VOLUME CONTROL
+              volumeCircular(),
+
+              const SizedBox(height: 20),
+
+              /// ACTION BUTTONS
+              Wrap(
+                spacing: 30,
+                runSpacing: 30,
+                alignment: WrapAlignment.center,
+
+                children: [
+
+                  actionButton(
+                    icon: Icons.lock,
+                    label: "Lock",
+                    onTap: () => run("loginctl lock-session"),
+                  ),
+
+                  actionButton(
+                    icon: Icons.power_settings_new,
+                    label: "Shutdown",
+                    onTap: () => run("shutdown now"),
+                  ),
+
+                  actionButton(
+                    icon: Icons.restart_alt,
+                    label: "Restart",
+                    onTap: () => run("reboot"),
+                  ),
+
+                  actionButton(
+                    icon: Icons.bedtime,
+                    label: "Suspend",
+                    onTap: () => run("systemctl suspend"),
+                  ),
+
+                  actionButton(
+                    icon: Icons.volume_off,
+                    label: "Mute",
+                    backgroundColor: isMuted ? const Color(0xFFB6FF00) : Colors.white,
+                    onTap: () async {
+                      await run(
+                          "pactl set-sink-mute @DEFAULT_SINK@ toggle");
+                      fetchInitialValues();
+                    },
+                  ),
+
+                  actionButton(
+                    icon: Icons.monitor,
+                    label: "Display Off",
+                    onTap: () => run("xset dpms force off"),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 40),
+
+              /// BRIGHTNESS CONTROL
+              brightnessSlider(),
+            ],
+          ),
         ),
       ),
     );

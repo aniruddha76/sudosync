@@ -40,6 +40,7 @@ class SSHService {
   }
 
   Future<String> run(String s) async {
+    // print(await runCommand(s));
     return await runCommand(s);
   }
 
