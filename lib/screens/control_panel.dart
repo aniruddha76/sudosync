@@ -118,7 +118,7 @@ class _ControlPanelState extends State<ControlPanel> {
           min: 0,
           max: 100,
           initialValue: volume,
-
+        
           appearance: CircularSliderAppearance(
 
             size: 250,

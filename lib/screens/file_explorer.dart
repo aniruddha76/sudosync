@@ -289,13 +289,13 @@ class _FileExplorerState extends State<FileExplorer> {
         appBar: AppBar(
           title: Text(
             "My Files",
-            style: GoogleFonts.lobsterTwo(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+            // style: GoogleFonts.lobsterTwo(
+            //   fontWeight: FontWeight.bold,
+            //   color: Colors.white,
+            // ),
           ),
           backgroundColor: Colors.black,
-          automaticallyImplyLeading: false,
+          // automaticallyImplyLeading: false,
         ),
         body: Column(
           children: [
