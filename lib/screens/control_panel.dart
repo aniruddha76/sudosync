@@ -89,7 +89,9 @@ class _ControlPanelState extends State<ControlPanel> {
           value: brightness,
           min: 0,
           max: 100,
+          year2023: false,
           activeColor: const Color(0xFFB6FF00),
+          inactiveColor: Colors.grey.shade800,
           label: brightness.round().toString(),
 
           onChanged: (v) async {
@@ -123,7 +125,7 @@ class _ControlPanelState extends State<ControlPanel> {
 
             customWidths: CustomSliderWidths(
               progressBarWidth: 15,
-              handlerSize: 8,
+              handlerSize: 5,
               trackWidth: 10,
             ),
 
