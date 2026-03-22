@@ -55,11 +55,11 @@ class _ControlPanelState extends State<ControlPanel> {
 
     /// GET LOGIN SESSION (SAFER)
     String loginctlRaw = await widget.ssh.run(
-        "loginctl list-sessions --no-legend | awk '{print \$1}' | head -n1");
+        "loginctl | grep tty | awk '{print \$1}'");
 
     int loginctlOutput = int.tryParse(loginctlRaw.trim()) ?? 0;
 
-    print("Loginctl Output: $loginctlOutput");
+    // print("Loginctl Output: $loginctlOutput");
 
     setState(() {
       volume = vol;
