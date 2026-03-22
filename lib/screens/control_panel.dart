@@ -16,6 +16,7 @@ class _ControlPanelState extends State<ControlPanel> {
   double volume = 0;
   double brightness = 0;
   bool isMuted = false;
+  int loginSession = 0;
 
   @override
   void initState() {
@@ -41,32 +42,45 @@ class _ControlPanelState extends State<ControlPanel> {
     String brightnessOutput =
         await widget.ssh.run("brightnessctl -m");
 
+    /// PARSE VOLUME
     double vol = double.parse(
         volOutput.split("/")[1].trim().replaceAll("%", ""));
 
+    /// PARSE MUTE
     bool muted = muteOutput.contains("yes");
 
+    /// PARSE BRIGHTNESS
     double bright = double.parse(
         brightnessOutput.split(",")[3].replaceAll("%", ""));
+
+    /// GET LOGIN SESSION (SAFER)
+    String loginctlRaw = await widget.ssh.run(
+        "loginctl list-sessions --no-legend | awk '{print \$1}' | head -n1");
+
+    int loginctlOutput = int.tryParse(loginctlRaw.trim()) ?? 0;
+
+    print("Loginctl Output: $loginctlOutput");
 
     setState(() {
       volume = vol;
       brightness = bright;
       isMuted = muted;
+      loginSession = loginctlOutput;
     });
   }
 
   Widget actionButton({
     required IconData icon,
     required String label,
-    required VoidCallback onTap, 
+    required VoidCallback onTap,
     Color? backgroundColor,
   }) {
     return Column(
       children: [
         FloatingActionButton(
           onPressed: onTap,
-          backgroundColor: backgroundColor ?? const Color.fromARGB(255, 255, 255, 255),
+          backgroundColor:
+              backgroundColor ?? const Color.fromARGB(255, 255, 255, 255),
           child: Icon(icon, color: Colors.black),
         ),
         const SizedBox(height: 8),
@@ -118,9 +132,8 @@ class _ControlPanelState extends State<ControlPanel> {
           min: 0,
           max: 100,
           initialValue: volume,
-        
-          appearance: CircularSliderAppearance(
 
+          appearance: CircularSliderAppearance(
             size: 250,
 
             customWidths: CustomSliderWidths(
@@ -196,7 +209,7 @@ class _ControlPanelState extends State<ControlPanel> {
                   actionButton(
                     icon: Icons.lock,
                     label: "Lock",
-                    onTap: () => run("loginctl lock-session"),
+                    onTap: () => run("loginctl lock-session $loginSession"),
                   ),
 
                   actionButton(
@@ -220,7 +233,8 @@ class _ControlPanelState extends State<ControlPanel> {
                   actionButton(
                     icon: Icons.volume_off,
                     label: "Mute",
-                    backgroundColor: isMuted ? const Color(0xFFB6FF00) : Colors.white,
+                    backgroundColor:
+                        isMuted ? const Color(0xFFB6FF00) : Colors.white,
                     onTap: () async {
                       await run(
                           "pactl set-sink-mute @DEFAULT_SINK@ toggle");
