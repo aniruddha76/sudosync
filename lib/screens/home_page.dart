@@ -308,21 +308,6 @@ class _HomePageState extends State<HomePage> {
                 children: [
 
                   deviceCard(
-                    title: "File Explorer",
-                    subtitle: "Browse files",
-                    icon: Icons.folder,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              FileExplorer(ssh: widget.ssh),
-                        ),
-                      );
-                    },
-                  ),
-
-                  deviceCard(
                     title: "System Monitor",
                     subtitle: "Performance",
                     icon: Icons.computer,
@@ -332,6 +317,21 @@ class _HomePageState extends State<HomePage> {
                         MaterialPageRoute(
                           builder: (_) =>
                               SystemMonitor(ssh: widget.ssh),
+                        ),
+                      );
+                    },
+                  ),
+
+                  deviceCard(
+                    title: "File Explorer",
+                    subtitle: "Browse files",
+                    icon: Icons.folder,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              FileExplorer(ssh: widget.ssh),
                         ),
                       );
                     },

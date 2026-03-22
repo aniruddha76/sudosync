@@ -154,9 +154,9 @@ class _SystemMonitorState extends State<SystemMonitor> {
       padding: const EdgeInsets.all(20),
 
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        color: const Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.circular(20),
+        // border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
 
       child: child,
