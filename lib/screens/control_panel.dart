@@ -12,7 +12,6 @@ class ControlPanel extends StatefulWidget {
 }
 
 class _ControlPanelState extends State<ControlPanel> {
-
   double volume = 0;
   double brightness = 0;
   bool isMuted = false;
@@ -29,33 +28,36 @@ class _ControlPanelState extends State<ControlPanel> {
   }
 
   Future<void> fetchInitialValues() async {
-
     /// GET VOLUME
-    String volOutput =
-        await widget.ssh.run("pactl get-sink-volume @DEFAULT_SINK@");
+    String volOutput = await widget.ssh.run(
+      "pactl get-sink-volume @DEFAULT_SINK@",
+    );
 
     /// GET MUTE STATUS
-    String muteOutput =
-        await widget.ssh.run("pactl get-sink-mute @DEFAULT_SINK@");
+    String muteOutput = await widget.ssh.run(
+      "pactl get-sink-mute @DEFAULT_SINK@",
+    );
 
     /// GET BRIGHTNESS
-    String brightnessOutput =
-        await widget.ssh.run("brightnessctl -m");
+    String brightnessOutput = await widget.ssh.run("brightnessctl -m");
 
     /// PARSE VOLUME
     double vol = double.parse(
-        volOutput.split("/")[1].trim().replaceAll("%", ""));
+      volOutput.split("/")[1].trim().replaceAll("%", ""),
+    );
 
     /// PARSE MUTE
     bool muted = muteOutput.contains("yes");
 
     /// PARSE BRIGHTNESS
     double bright = double.parse(
-        brightnessOutput.split(",")[3].replaceAll("%", ""));
+      brightnessOutput.split(",")[3].replaceAll("%", ""),
+    );
 
     /// GET LOGIN SESSION (SAFER)
     String loginctlRaw = await widget.ssh.run(
-        "loginctl | grep tty | awk '{print \$1}'");
+      "loginctl | grep tty | awk '{print \$1}'",
+    );
 
     int loginctlOutput = int.tryParse(loginctlRaw.trim()) ?? 0;
 
@@ -67,6 +69,50 @@ class _ControlPanelState extends State<ControlPanel> {
       isMuted = muted;
       loginSession = loginctlOutput;
     });
+  }
+
+  Future<void> sudoCommand(String command) async {
+    TextEditingController passController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.black,
+          title: const Text(
+            "Enter Sudo Password",
+            style: TextStyle(color: Colors.white),
+          ),
+          content: TextField(
+            controller: passController,
+            obscureText: true,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: "Password",
+              hintStyle: TextStyle(color: Colors.grey),
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: const Text("Cancel"),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+            ElevatedButton(
+              child: const Text("Run"),
+              onPressed: () async {
+                String pass = passController.text;
+
+                Navigator.pop(context);
+
+                await run("echo '$pass' | sudo -S $command");
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Widget actionButton({
@@ -93,7 +139,6 @@ class _ControlPanelState extends State<ControlPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-
         const Text(
           "Brightness",
           style: TextStyle(color: Colors.white, fontSize: 16),
@@ -108,9 +153,12 @@ class _ControlPanelState extends State<ControlPanel> {
           inactiveColor: Colors.grey.shade800,
           label: brightness.round().toString(),
 
-          onChanged: (v) async {
+          onChanged: (v) {
             setState(() => brightness = v);
-            await run("brightnessctl set ${v.round()}%");
+          },
+
+          onChangeEnd: (v) async {
+            await run("brightnessctl -c backlight set ${v.round()}%");
           },
         ),
       ],
@@ -120,7 +168,6 @@ class _ControlPanelState extends State<ControlPanel> {
   Widget volumeCircular() {
     return Column(
       children: [
-
         const Text(
           "Volume",
           style: TextStyle(color: Colors.white, fontSize: 18),
@@ -165,8 +212,7 @@ class _ControlPanelState extends State<ControlPanel> {
           },
 
           onChangeEnd: (v) async {
-            await run(
-                "pactl set-sink-volume @DEFAULT_SINK@ ${v.round()}%");
+            await run("pactl set-sink-volume @DEFAULT_SINK@ ${v.round()}%");
           },
         ),
       ],
@@ -175,9 +221,7 @@ class _ControlPanelState extends State<ControlPanel> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-
       backgroundColor: Colors.black,
 
       appBar: AppBar(
@@ -186,26 +230,23 @@ class _ControlPanelState extends State<ControlPanel> {
       ),
 
       body: SingleChildScrollView(
-
         child: Padding(
           padding: const EdgeInsets.all(20),
 
           child: Column(
             children: [
-
               /// VOLUME CONTROL
               volumeCircular(),
 
-              const SizedBox(height: 20),
+              // const SizedBox(height: 20),
 
               /// ACTION BUTTONS
               Wrap(
                 spacing: 30,
                 runSpacing: 30,
-                alignment: WrapAlignment.center,
+                // alignment: WrapAlignment.center,
 
                 children: [
-
                   actionButton(
                     icon: Icons.lock,
                     label: "Lock",
@@ -215,29 +256,29 @@ class _ControlPanelState extends State<ControlPanel> {
                   actionButton(
                     icon: Icons.power_settings_new,
                     label: "Shutdown",
-                    onTap: () => run("shutdown now"),
+                    onTap: () => sudoCommand("shutdown now"),
                   ),
 
                   actionButton(
                     icon: Icons.restart_alt,
                     label: "Restart",
-                    onTap: () => run("reboot"),
+                    onTap: () => sudoCommand("reboot"),
                   ),
 
                   actionButton(
                     icon: Icons.bedtime,
                     label: "Suspend",
-                    onTap: () => run("systemctl suspend"),
+                    onTap: () => sudoCommand("systemctl suspend"),
                   ),
 
                   actionButton(
                     icon: Icons.volume_off,
                     label: "Mute",
-                    backgroundColor:
-                        isMuted ? const Color(0xFFB6FF00) : Colors.white,
+                    backgroundColor: isMuted
+                        ? const Color(0xFFB6FF00)
+                        : Colors.white,
                     onTap: () async {
-                      await run(
-                          "pactl set-sink-mute @DEFAULT_SINK@ toggle");
+                      await run("pactl set-sink-mute @DEFAULT_SINK@ toggle");
                       fetchInitialValues();
                     },
                   ),
