@@ -271,10 +271,16 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
 
-                  const CircleAvatar(
-                    backgroundColor: Colors.black,
+                  CircleAvatar(
+                    backgroundColor: Color.fromARGB(255, 0, 0, 0),
                     child:
-                        Icon(Icons.add, color: Colors.white),
+                        IconButton(
+                          icon: const Icon(Icons.logout, color: Color.fromARGB(255, 255, 255, 255)),
+                        onPressed: () {
+                          widget.ssh.disconnect();
+                          Navigator.pop(context);
+                        },
+                        ),
                   ),
                 ],
               ),
