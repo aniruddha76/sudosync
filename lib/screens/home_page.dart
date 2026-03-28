@@ -26,6 +26,7 @@ class _HomePageState extends State<HomePage> {
   String date = "--";
 
   double memoryPercent = 0;
+  List<String> recentDownloads = [];
 
   @override
   void initState() {
@@ -53,6 +54,8 @@ class _HomePageState extends State<HomePage> {
 
       String time = await widget.ssh.run("date");
 
+      String downloads = await widget.ssh.run("ls -t ~/Downloads 2>/dev/null | head -5");
+
       double used = double.tryParse(usedMem.trim()) ?? 0;
       double total = double.tryParse(totalMem.trim()) ?? 1;
 
@@ -67,6 +70,7 @@ class _HomePageState extends State<HomePage> {
         date = time.trim();
 
         memoryPercent = used / total;
+        recentDownloads = downloads.trim().split("\n").where((e) => e.isNotEmpty).toList();
       });
     } catch (e) {
       debugPrint(e.toString());
@@ -109,7 +113,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget downloadItem(String name) {
     return Container(
-      width: 150,
+      width: 200,
       margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -386,12 +390,7 @@ class _HomePageState extends State<HomePage> {
                 height: 80,
                 child: ListView(
                   scrollDirection: Axis.horizontal,
-                  children: [
-                    downloadItem("server.log"),
-                    downloadItem("backup.tar.gz"),
-                    downloadItem("config.json"),
-                    downloadItem("system.log"),
-                  ],
+                  children: recentDownloads.map((download) => downloadItem(download)).toList(),
                 ),
               ),
 
