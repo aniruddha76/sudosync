@@ -380,7 +380,7 @@ class _HomePageState extends State<HomePage> {
               ),
 
               const SizedBox(height: 25),
-
+              
               /// RECENT DOWNLOADS
               const Text(
                 "Recent Downloads",
@@ -403,6 +403,48 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 30),
             ],
           ),
+        ),
+      ),
+      
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 25),
+        color: const Color.fromARGB(255, 0, 0, 0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.home_rounded, color: Colors.white, size: 28),
+                const SizedBox(height: 4),
+                Text("Home", style: TextStyle(color: Colors.white, fontSize: 10)),
+              ],
+            ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.settings_rounded, color: Colors.white, size: 28),
+                const SizedBox(height: 4),
+                Text("Services", style: TextStyle(color: Colors.white, fontSize: 10)),
+              ],
+            ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.wifi_tethering, color: Colors.white, size: 28),
+                const SizedBox(height: 4),
+                Text("Network", style: TextStyle(color: Colors.white, fontSize: 10)),
+              ],
+            ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.person, color: Colors.white, size: 28),
+                const SizedBox(height: 4),
+                Text("Profile", style: TextStyle(color: Colors.white, fontSize: 10)),
+              ],
+            ),
+          ],
         ),
       ),
     );
