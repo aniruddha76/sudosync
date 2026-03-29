@@ -6,6 +6,7 @@ import 'package:dartssh2/dartssh2.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '../service/ssh_service.dart';
 import 'image_viewer.dart';
@@ -33,6 +34,12 @@ class _FileExplorerState extends State<FileExplorer> {
 
   Future<void> loadFiles(String path) async {
     final list = await widget.ssh.listDir(path);
+
+    list.sort((a, b) {
+      if (isDirectory(a) && !isDirectory(b)) return -1;
+      if (!isDirectory(a) && isDirectory(b)) return 1;
+      return a.filename.compareTo(b.filename);
+    });
 
     setState(() {
       currentPath = path;
@@ -139,8 +146,11 @@ class _FileExplorerState extends State<FileExplorer> {
         future: getVideoThumb(path),
         builder: (context, snap) {
           if (!snap.hasData) {
-            return const Icon(Icons.video_file,
-                size: 35, color: Color(0xFFB6FF00));
+            return const Icon(
+              Icons.video_file,
+              size: 35,
+              color: Color(0xFFB6FF00),
+            );
           }
 
           return ClipRRect(
@@ -156,8 +166,11 @@ class _FileExplorerState extends State<FileExplorer> {
       );
     }
 
-    return Icon(getIcon(file.filename),
-        size: 35, color: const Color(0xFFB6FF00));
+    return Icon(
+      getIcon(file.filename),
+      size: 35,
+      color: const Color(0xFFB6FF00),
+    );
   }
 
   void openItem(SftpName file) {
@@ -226,23 +239,99 @@ class _FileExplorerState extends State<FileExplorer> {
         downloadProgress = 0;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Downloaded: ${localFile.path}")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Downloaded: ${localFile.path}")));
     } catch (e) {
       setState(() {
         downloadProgress = 0;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Download failed: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Download failed: $e")));
     }
   }
 
-  Widget deviceCard({
-    required SftpName file,
-  }) {
+  Future<void> uploadFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles();
+
+      if (result == null) return;
+
+      final file = File(result.files.single.path!);
+      final name = result.files.single.name;
+
+      final remotePath = "$currentPath/$name";
+
+      final remoteFile = await widget.ssh.sftp!.open(
+        remotePath,
+        mode: SftpFileOpenMode.create | SftpFileOpenMode.write,
+      );
+
+      await remoteFile.write(
+        file.openRead().map((data) => Uint8List.fromList(data)),
+      );
+
+      await remoteFile.close();
+
+      await loadFiles(currentPath);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("File uploaded")));
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Upload failed: $e")));
+    }
+  }
+
+  Future<void> uploadFolder() async {
+    try {
+      String? dir = await FilePicker.platform.getDirectoryPath();
+
+      if (dir == null) return;
+
+      final directory = Directory(dir);
+      final entities = directory.listSync(recursive: true);
+
+      for (var entity in entities) {
+        if (entity is File) {
+          final relative = entity.path.replaceFirst(dir, "");
+          final remotePath = "$currentPath$relative";
+
+          try {
+            await widget.ssh.sftp!.mkdir(
+              remotePath.substring(0, remotePath.lastIndexOf("/")),
+            );
+          } catch (_) {}
+
+          final remoteFile = await widget.ssh.sftp!.open(
+            remotePath,
+            mode: SftpFileOpenMode.create | SftpFileOpenMode.write,
+          );
+
+          await remoteFile.write(
+            entity.openRead().map((data) => Uint8List.fromList(data)),
+          );
+          await remoteFile.close();
+        }
+      }
+
+      await loadFiles(currentPath);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Folder uploaded")));
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Folder upload failed: $e")));
+    }
+  }
+
+  Widget deviceCard({required SftpName file}) {
     return GestureDetector(
       onTap: () {
         openItem(file);
@@ -273,6 +362,61 @@ class _FileExplorerState extends State<FileExplorer> {
     );
   }
 
+  void openUploadMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1C1C1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SizedBox(
+          height: 160,
+          child: Column(
+            children: [
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 8,
+                ),
+                leading: const Icon(
+                  Icons.upload_file,
+                  color: Color(0xFFB6FF00),
+                ),
+                title: const Text(
+                  "Upload File",
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  uploadFile();
+                },
+              ),
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 8,
+                ),
+                leading: const Icon(
+                  Icons.create_new_folder,
+                  color: Color(0xFFB6FF00),
+                ),
+                title: const Text(
+                  "Upload Folder",
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  uploadFolder();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -285,16 +429,25 @@ class _FileExplorerState extends State<FileExplorer> {
       },
       child: Scaffold(
         backgroundColor: Colors.black,
-        appBar: AppBar(
-          title: Text(
-            "My Files",
-            // style: GoogleFonts.lobsterTwo(
-            //   fontWeight: FontWeight.bold,
-            //   color: Colors.white,
-            // ),
+        floatingActionButton: Padding(
+          padding: const EdgeInsets.only(bottom: 40),
+          child: SizedBox(
+            width: 48,
+            height: 48,
+            child: FloatingActionButton(
+              hoverElevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(50),
+              ),
+              onPressed: openUploadMenu,
+              backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+              child: const Icon(Icons.add, color: Colors.black, size: 28),
+            ),
           ),
+        ),
+        appBar: AppBar(
+          title: const Text("My Files"),
           backgroundColor: Colors.black,
-          // automaticallyImplyLeading: false,
         ),
         body: Column(
           children: [

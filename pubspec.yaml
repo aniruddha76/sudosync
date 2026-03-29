@@ -44,6 +44,7 @@ dependencies:
   sleek_circular_slider: ^2.1.0
   fl_chart: ^1.2.0
   flutter_launcher_icons: ^0.14.4
+  file_picker: ^10.3.10
 
 dev_dependencies:
   flutter_test:
