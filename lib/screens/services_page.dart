@@ -67,18 +67,33 @@ class _ServicesPageState extends State<ServicesPage> {
         color: const Color(0xFF1C1C1E),
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            isRunning ? Icons.check_circle_outline_rounded : Icons.pause_circle_outline_rounded,
-            color: isRunning ? Colors.green : Colors.red,
+          Row(
+            children: [
+              Icon(
+                isRunning
+                    ? Icons.check_circle_outline_rounded
+                    : Icons.pause_circle_outline_rounded,
+                color: isRunning ? Colors.green : Colors.red,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  name,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              name,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white),
+          const SizedBox(height: 10),
+          Text(
+            isRunning ? "Running" : "Stopped",
+            style: TextStyle(
+              color: isRunning ? Colors.green : Colors.red,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],

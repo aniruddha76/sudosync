@@ -428,7 +428,7 @@ class _HomePageState extends State<HomePage> {
           children: [
             navItem(Icons.home_rounded, "Home", 0),
             navItem(Icons.settings_rounded, "Services", 1),
-            navItem(Icons.wifi_tethering, "Network", 2),
+            navItem(Icons.wifi_tethering_rounded, "Network", 2),
             navItem(Icons.person, "Profile", 3),
           ],
         ),
