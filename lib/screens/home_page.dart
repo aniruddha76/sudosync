@@ -1,5 +1,8 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:sudosync/screens/file_explorer.dart';
+import 'package:sudosync/screens/services_page.dart';
 import 'package:sudosync/screens/system_monitor.dart';
 import '../service/ssh_service.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -16,13 +19,15 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+
+  int selectedIndex = 0;
+
   String username = "Loading...";
   String hostname = "Loading...";
   String uptime = "Loading...";
   String totalMemory = "--";
   String memoryUsed = "--";
   String batteryStatus = "--";
-  // String cpuUsage = "--";
   String date = "--";
 
   double memoryPercent = 0;
@@ -54,7 +59,8 @@ class _HomePageState extends State<HomePage> {
 
       String time = await widget.ssh.run("date");
 
-      String downloads = await widget.ssh.run("ls -t ~/Downloads 2>/dev/null | head -5");
+      String downloads = await widget.ssh.run(
+          "ls -t ~/Downloads 2>/dev/null | head -5");
 
       double used = double.tryParse(usedMem.trim()) ?? 0;
       double total = double.tryParse(totalMem.trim()) ?? 1;
@@ -65,12 +71,12 @@ class _HomePageState extends State<HomePage> {
         uptime = up.trim();
         memoryUsed = usedMem.trim();
         totalMemory = totalMem.trim();
-        // cpuUsage = cpu.trim();
         batteryStatus = battery.trim();
         date = time.trim();
 
         memoryPercent = used / total;
-        recentDownloads = downloads.trim().split("\n").where((e) => e.isNotEmpty).toList();
+        recentDownloads =
+            downloads.trim().split("\n").where((e) => e.isNotEmpty).toList();
       });
     } catch (e) {
       debugPrint(e.toString());
@@ -153,299 +159,276 @@ class _HomePageState extends State<HomePage> {
               Text(
                 hostname,
                 style: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20),
               ),
               const SizedBox(height: 3),
               Text("Uptime: $uptime",
                   style: const TextStyle(color: Colors.black)),
               const SizedBox(height: 10),
-
               Row(
-                // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-
-                  /// MEMORY
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text("Memory",
-                          style: TextStyle(color: Colors.black,
-                          fontWeight: FontWeight.bold)),
-                      Text(
-                        "$memoryUsed / $totalMemory MB",
-                        style: const TextStyle(
-                            color: Colors.black),
-                      ),
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold)),
+                      Text("$memoryUsed / $totalMemory MB",
+                          style: const TextStyle(color: Colors.black)),
                     ],
                   ),
-
-                  const SizedBox(width: 20),  
-
-                  /// BATTERY
+                  const SizedBox(width: 20),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text("Battery",
-                          style: TextStyle(color: Colors.black,
-                          fontWeight: FontWeight.bold)),
-                      Text(
-                        "$batteryStatus %",
-                        style: const TextStyle(
-                            color: Colors.black,)
-                      ),
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold)),
+                      Text("$batteryStatus %",
+                          style: const TextStyle(color: Colors.black)),
                     ],
                   ),
                 ],
               )
             ],
           ),
-
-          //Memory Bar
           SizedBox(
-                width: 80,
-                height: 80,
-                child: CircularProgressIndicator(
-                  value: memoryPercent,
-                  strokeWidth: 8,
-                  strokeCap: StrokeCap.round,
-                  backgroundColor: Colors.white,
-                  valueColor:
-                      const AlwaysStoppedAnimation(Colors.black),
-                ),
-              ),
+            width: 80,
+            height: 80,
+            child: CircularProgressIndicator(
+              value: memoryPercent,
+              strokeWidth: 8,
+              strokeCap: StrokeCap.round,
+              backgroundColor: Colors.white,
+              valueColor: const AlwaysStoppedAnimation(Colors.black),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget homePage() {
+    return SafeArea(
+      child: RefreshIndicator(
+        onRefresh: loadSystemData,
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          children: [
+
+            const SizedBox(height: 10),
+
+            /// HEADER
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const CircleAvatar(
+                      radius: 22,
+                      backgroundImage: AssetImage("assets/avatar.png"),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Hi $username!",
+                            style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white)),
+                        Text(date, style: const TextStyle(color: Colors.grey)),
+                      ],
+                    ),
+                  ],
+                ),
+                CircleAvatar(
+                  backgroundColor: Colors.black,
+                  child: IconButton(
+                    icon: const Icon(Icons.logout, color: Colors.white),
+                    onPressed: () {
+                      widget.ssh.disconnect();
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            systemCard(),
+
+            const SizedBox(height: 10),
+
+            Center(
+              child: Text(
+                "SudoSync",
+                style: GoogleFonts.lobsterTwo(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
+                    color: Colors.white),
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            /// GRID
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              crossAxisSpacing: 15,
+              mainAxisSpacing: 15,
+              children: [
+
+                deviceCard(
+                  title: "System Monitor",
+                  subtitle: "Performance",
+                  icon: Icons.computer,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SystemMonitor(ssh: widget.ssh),
+                      ),
+                    );
+                  },
+                ),
+
+                deviceCard(
+                  title: "File Explorer",
+                  subtitle: "Browse files",
+                  icon: Icons.folder,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => FileExplorer(ssh: widget.ssh),
+                      ),
+                    );
+                  },
+                ),
+
+                deviceCard(
+                  title: "Control Panel",
+                  subtitle: "Settings",
+                  icon: Icons.settings,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ControlPanel(ssh: widget.ssh),
+                      ),
+                    );
+                  },
+                ),
+
+                deviceCard(
+                  title: "Terminal",
+                  subtitle: "SSH Access",
+                  icon: Icons.terminal,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TerminalScreen(ssh: widget.ssh),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 25),
+
+            const Text(
+              "Recent Downloads",
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 10),
+
+            SizedBox(
+              height: 80,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: recentDownloads
+                    .map((download) => downloadItem(download))
+                    .toList(),
+              ),
+            ),
+
+            const SizedBox(height: 30),
+          ],
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       backgroundColor: const Color(0xFF000000),
 
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: loadSystemData,
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-
-            children: [
-
-              const SizedBox(height: 10),
-
-              /// HEADER
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-
-                  Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 22,
-                        backgroundImage:
-                            AssetImage("assets/avatar.png"),
-                      ),
-
-                      const SizedBox(width: 10),
-
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Hi $username!",
-                            style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white),
-                          ),
-                          Text(
-                            date,
-                            style:
-                                const TextStyle(color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-
-                  CircleAvatar(
-                    backgroundColor: Color.fromARGB(255, 0, 0, 0),
-                    child:
-                        IconButton(
-                          icon: const Icon(Icons.logout, color: Color.fromARGB(255, 255, 255, 255)),
-                        onPressed: () {
-                          widget.ssh.disconnect();
-                          Navigator.pop(context);
-                        },
-                        ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              /// SYSTEM CARD
-              systemCard(),
-
-              const SizedBox(height: 10),
-
-              /// TITLE
-              Center(
-                child: Text(
-                  "SudoSync",
-                  style: GoogleFonts.lobsterTwo(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 24,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              /// GRID
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                crossAxisSpacing: 15,
-                mainAxisSpacing: 15,
-                childAspectRatio: 1,
-
-                children: [
-
-                  deviceCard(
-                    title: "System Monitor",
-                    subtitle: "Performance",
-                    icon: Icons.computer,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              SystemMonitor(ssh: widget.ssh),
-                        ),
-                      );
-                    },
-                  ),
-
-                  deviceCard(
-                    title: "File Explorer",
-                    subtitle: "Browse files",
-                    icon: Icons.folder,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              FileExplorer(ssh: widget.ssh),
-                        ),
-                      );
-                    },
-                  ),
-
-                  deviceCard(
-                    title: "Control Panel",
-                    subtitle: "Settings",
-                    icon: Icons.settings,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              ControlPanel(ssh: widget.ssh),
-                        ),
-                      );
-                    },
-                  ),
-
-                  deviceCard(
-                    title: "Terminal",
-                    subtitle: "SSH Access",
-                    icon: Icons.terminal,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              TerminalScreen(ssh: widget.ssh),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 25),
-              
-              /// RECENT DOWNLOADS
-              const Text(
-                "Recent Downloads",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold),
-              ),
-
-              const SizedBox(height: 10),
-
-              SizedBox(
-                height: 80,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: recentDownloads.map((download) => downloadItem(download)).toList(),
-                ),
-              ),
-
-              const SizedBox(height: 30),
-            ],
-          ),
-        ),
+      body: IndexedStack(
+        index: selectedIndex,
+        children: [
+          homePage(),
+          ServicesPage(),
+          const Center(child: Text("Network", style: TextStyle(color: Colors.white))),
+          const Center(child: Text("Profile", style: TextStyle(color: Colors.white))),
+        ],
       ),
-      
+
       bottomNavigationBar: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 25),
-        color: const Color.fromARGB(255, 0, 0, 0),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 25),
+        color: Colors.black,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.home_rounded, color: Colors.white, size: 28),
-                const SizedBox(height: 4),
-                Text("Home", style: TextStyle(color: Colors.white, fontSize: 10)),
-              ],
-            ),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.settings_rounded, color: Colors.white, size: 28),
-                const SizedBox(height: 4),
-                Text("Services", style: TextStyle(color: Colors.white, fontSize: 10)),
-              ],
-            ),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.wifi_tethering, color: Colors.white, size: 28),
-                const SizedBox(height: 4),
-                Text("Network", style: TextStyle(color: Colors.white, fontSize: 10)),
-              ],
-            ),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.person, color: Colors.white, size: 28),
-                const SizedBox(height: 4),
-                Text("Profile", style: TextStyle(color: Colors.white, fontSize: 10)),
-              ],
-            ),
+
+            navItem(Icons.home_rounded, "Home", 0),
+            navItem(Icons.settings_rounded, "Services", 1),
+            navItem(Icons.wifi_tethering, "Network", 2),
+            navItem(Icons.person, "Profile", 3),
+
           ],
         ),
+      ),
+    );
+  }
+
+  Widget navItem(IconData icon, String label, int index) {
+
+    bool selected = selectedIndex == index;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedIndex = index;
+        });
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon,
+              color: selected ? const Color.fromARGB(255, 255, 255, 255) : Colors.grey,
+              size: 28),
+          const SizedBox(height: 4),
+          Text(label,
+              style: TextStyle(
+                  color: selected ? const Color.fromARGB(255, 255, 255, 255) : Colors.grey,
+                  fontSize: 10)),
+        ],
       ),
     );
   }
