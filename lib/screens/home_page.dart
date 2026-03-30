@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:sudosync/screens/file_explorer.dart';
 import 'package:sudosync/screens/services_page.dart';
@@ -19,7 +17,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-
   int selectedIndex = 0;
 
   String username = "Loading...";
@@ -60,7 +57,8 @@ class _HomePageState extends State<HomePage> {
       String time = await widget.ssh.run("date");
 
       String downloads = await widget.ssh.run(
-          "ls -t ~/Downloads 2>/dev/null | head -5");
+        "ls -t ~/Downloads 2>/dev/null | head -5",
+      );
 
       double used = double.tryParse(usedMem.trim()) ?? 0;
       double total = double.tryParse(totalMem.trim()) ?? 1;
@@ -75,8 +73,11 @@ class _HomePageState extends State<HomePage> {
         date = time.trim();
 
         memoryPercent = used / total;
-        recentDownloads =
-            downloads.trim().split("\n").where((e) => e.isNotEmpty).toList();
+        recentDownloads = downloads
+            .trim()
+            .split("\n")
+            .where((e) => e.isNotEmpty)
+            .toList();
       });
     } catch (e) {
       debugPrint(e.toString());
@@ -159,41 +160,54 @@ class _HomePageState extends State<HomePage> {
               Text(
                 hostname,
                 style: const TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20),
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
               ),
               const SizedBox(height: 3),
-              Text("Uptime: $uptime",
-                  style: const TextStyle(color: Colors.black)),
+              Text(
+                "Uptime: $uptime",
+                style: const TextStyle(color: Colors.black),
+              ),
               const SizedBox(height: 10),
               Row(
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("Memory",
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold)),
-                      Text("$memoryUsed / $totalMemory MB",
-                          style: const TextStyle(color: Colors.black)),
+                      const Text(
+                        "Memory",
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        "$memoryUsed / $totalMemory MB",
+                        style: const TextStyle(color: Colors.black),
+                      ),
                     ],
                   ),
                   const SizedBox(width: 20),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("Battery",
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold)),
-                      Text("$batteryStatus %",
-                          style: const TextStyle(color: Colors.black)),
+                      const Text(
+                        "Battery",
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        "$batteryStatus %",
+                        style: const TextStyle(color: Colors.black),
+                      ),
                     ],
                   ),
                 ],
-              )
+              ),
             ],
           ),
           SizedBox(
@@ -219,7 +233,6 @@ class _HomePageState extends State<HomePage> {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 18),
           children: [
-
             const SizedBox(height: 10),
 
             /// HEADER
@@ -236,11 +249,14 @@ class _HomePageState extends State<HomePage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("Hi $username!",
-                            style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white)),
+                        Text(
+                          "Hi $username!",
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                         Text(date, style: const TextStyle(color: Colors.grey)),
                       ],
                     ),
@@ -269,9 +285,10 @@ class _HomePageState extends State<HomePage> {
               child: Text(
                 "SudoSync",
                 style: GoogleFonts.lobsterTwo(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 24,
-                    color: Colors.white),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 24,
+                  color: Colors.white,
+                ),
               ),
             ),
 
@@ -285,7 +302,6 @@ class _HomePageState extends State<HomePage> {
               crossAxisSpacing: 15,
               mainAxisSpacing: 15,
               children: [
-
                 deviceCard(
                   title: "System Monitor",
                   subtitle: "Performance",
@@ -349,9 +365,10 @@ class _HomePageState extends State<HomePage> {
             const Text(
               "Recent Downloads",
               style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold),
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
 
             const SizedBox(height: 10),
@@ -373,21 +390,35 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget getPage() {
+    switch (selectedIndex) {
+      case 0:
+        return homePage();
+
+      case 1:
+        return ServicesPage(ssh: widget.ssh);
+
+      case 2:
+        return const Center(
+          child: Text("Network", style: TextStyle(color: Colors.white)),
+        );
+
+      case 3:
+        return const Center(
+          child: Text("Profile", style: TextStyle(color: Colors.white)),
+        );
+
+      default:
+        return homePage();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: const Color(0xFF000000),
 
-      body: IndexedStack(
-        index: selectedIndex,
-        children: [
-          homePage(),
-          ServicesPage(),
-          const Center(child: Text("Network", style: TextStyle(color: Colors.white))),
-          const Center(child: Text("Profile", style: TextStyle(color: Colors.white))),
-        ],
-      ),
+      body: getPage(),
 
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 25),
@@ -395,12 +426,10 @@ class _HomePageState extends State<HomePage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-
             navItem(Icons.home_rounded, "Home", 0),
             navItem(Icons.settings_rounded, "Services", 1),
             navItem(Icons.wifi_tethering, "Network", 2),
             navItem(Icons.person, "Profile", 3),
-
           ],
         ),
       ),
@@ -408,7 +437,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget navItem(IconData icon, String label, int index) {
-
     bool selected = selectedIndex == index;
 
     return GestureDetector(
@@ -420,14 +448,23 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon,
-              color: selected ? const Color.fromARGB(255, 255, 255, 255) : Colors.grey,
-              size: 28),
+          Icon(
+            icon,
+            color: selected
+                ? const Color.fromARGB(255, 255, 255, 255)
+                : Colors.grey,
+            size: 28,
+          ),
           const SizedBox(height: 4),
-          Text(label,
-              style: TextStyle(
-                  color: selected ? const Color.fromARGB(255, 255, 255, 255) : Colors.grey,
-                  fontSize: 10)),
+          Text(
+            label,
+            style: TextStyle(
+              color: selected
+                  ? const Color.fromARGB(255, 255, 255, 255)
+                  : Colors.grey,
+              fontSize: 10,
+            ),
+          ),
         ],
       ),
     );
