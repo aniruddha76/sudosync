@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sudosync/screens/file_explorer.dart';
+import 'package:sudosync/screens/profile_page.dart';
 import 'package:sudosync/screens/services_page.dart';
 import 'package:sudosync/screens/system_monitor.dart';
 import '../service/ssh_service.dart';
@@ -404,9 +405,7 @@ class _HomePageState extends State<HomePage> {
         );
 
       case 3:
-        return const Center(
-          child: Text("Profile", style: TextStyle(color: Colors.white)),
-        );
+        return ProfilePage(ssh: widget.ssh);
 
       default:
         return homePage();
