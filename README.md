@@ -173,4 +173,3 @@ Built by **Aniruddha**
 
 ---
 
-If you want, I can also give you a **much stronger README used by trending GitHub projects** (with **feature tables, architecture diagram, GIF demo, and command list used by SudoSync**) which will make the repo look **10x more professional**.
