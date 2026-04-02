@@ -7,6 +7,7 @@ import '../service/ssh_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'terminal_screen.dart';
 import 'control_panel.dart';
+import 'network_page.dart';
 
 class HomePage extends StatefulWidget {
   final SSHService ssh;
@@ -431,9 +432,7 @@ class _HomePageState extends State<HomePage> {
         return ServicesPage(ssh: widget.ssh);
 
       case 2:
-        return const Center(
-          child: Text("Network", style: TextStyle(color: Colors.white)),
-        );
+        return NetworkPage(ssh: widget.ssh);
 
       case 3:
         return ProfilePage(ssh: widget.ssh);
