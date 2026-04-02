@@ -194,7 +194,7 @@ class _NetworkPageState extends State<NetworkPage> {
             LineChartBarData(
               spots: downloadSpots,
               isCurved: true,
-              color: Colors.limeAccent,
+              color: Color(0xFFB6FF00),
               barWidth: 3,
               dotData: FlDotData(show: false),
             ),
@@ -218,14 +218,13 @@ class _NetworkPageState extends State<NetworkPage> {
       height: 90,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xff0f0f0f),
+        color: const Color(0xFF1C1C1C),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white10),
       ),
       child: Row(
         children: [
 
-          Icon(icon, color: Colors.limeAccent),
+          Icon(icon, color: Color(0xFFB6FF00)),
 
           const SizedBox(width: 10),
 
@@ -263,9 +262,8 @@ class _NetworkPageState extends State<NetworkPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xff0f0f0f),
+        color: const Color(0xFF1C1C1C),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white10),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,7 +284,7 @@ class _NetworkPageState extends State<NetworkPage> {
 
             return ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.hub, color: Colors.limeAccent),
+              leading: const Icon(Icons.hub, color: Color(0xFFB6FF00)),
               title: Text(
                 "Port $port",
                 style: const TextStyle(color: Colors.white),
@@ -296,7 +294,7 @@ class _NetworkPageState extends State<NetworkPage> {
                 style: const TextStyle(color: Colors.white54),
               ),
               trailing: const Icon(Icons.circle,
-                  size: 10, color: Colors.limeAccent),
+                  size: 10, color: Color(0xFFB6FF00)),
             );
 
           }).toList()
@@ -313,10 +311,13 @@ class _NetworkPageState extends State<NetworkPage> {
       backgroundColor: const Color(0xff050505),
 
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.black,
-        title: Text(
-          "Network Monitor",
-          style: GoogleFonts.poppins(color: Colors.white),
+        title: Center(
+          child: Text(
+            "Network",
+            style: GoogleFonts.poppins(color: Colors.white),
+          ),
         ),
       ),
 
@@ -354,7 +355,7 @@ class _NetworkPageState extends State<NetworkPage> {
                       Text(
                         "Download ${downloadSpeed.toStringAsFixed(2)} Mbps",
                         style: const TextStyle(
-                            color: Colors.limeAccent),
+                            color: Color(0xFFB6FF00)),
                       ),
 
                       Text(
@@ -392,10 +393,16 @@ class _NetworkPageState extends State<NetworkPage> {
                 Expanded(
                     child: statCard(Icons.public, "Public IP", publicIP)),
 
-                const SizedBox(width: 12),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
 
                 Expanded(
-                    child: statCard(Icons.wifi, "Packet Loss", packetLoss)),
+                    child: statCard(Icons.warning, "Packet Loss", packetLoss)),
 
               ],
             ),
