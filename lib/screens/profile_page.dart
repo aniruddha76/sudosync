@@ -13,8 +13,16 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
 
-  Map<String, String> info = {};
-  bool loading = true;
+  Map<String, String> info = {
+    "Static hostname": "Loading...",
+    "Operating System": "Loading...",
+    "Kernel": "Loading...",
+    "Architecture": "Loading...",
+    "Machine ID": "Loading...",
+    "Boot ID": "Loading...",
+    "Chassis": "Loading...",
+    "Public IP": "Loading...",
+  };
 
   @override
   void initState() {
@@ -27,12 +35,12 @@ class _ProfilePageState extends State<ProfilePage> {
     final result = await widget.ssh.runCommand("hostnamectl");
     final publicIp = await widget.ssh.runCommand("curl -s ifconfig.me");
 
-    Map<String, String> parsed = {};
+    Map<String, String> parsed = Map.from(info);
 
     for (var line in result.split("\n")) {
       if (line.contains(":")) {
         var parts = line.split(":");
-        parsed[parts[0].trim()] = parts[1].trim();
+        parsed[parts[0].trim()] = parts.sublist(1).join(":").trim();
       }
     }
 
@@ -40,7 +48,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
     setState(() {
       info = parsed;
-      loading = false;
     });
   }
 
@@ -105,75 +112,73 @@ class _ProfilePageState extends State<ProfilePage> {
       backgroundColor: const Color.fromARGB(255, 0, 0, 0),
 
       appBar: AppBar(
-      automaticallyImplyLeading: false,
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.black,
-        title: Center(
-          child: Text("Profile"),
-        ),
+        centerTitle: true,
+        title: const Text("Profile"),
       ),
 
-      body: loading
-          ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 182, 255, 0),))
-          : Padding(
-              padding: const EdgeInsets.all(16),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
 
-              child: ListView(
-                children: [
+        child: ListView(
+          children: [
 
-                  /// PROFILE ICON
-                  const CircleAvatar(
-                    radius: 45,
-                    backgroundColor: Color(0xFFB6FF00),
-                    child: Icon(
-                      Icons.dns,
-                      size: 40,
-                      color: Colors.black,
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  /// HOSTNAME
-                  Center(
-                    child: Text(
-                      info["Static hostname"] ?? "Server",
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 5),
-
-                  Center(
-                    child: Text(
-                      info["Operating System"] ?? "",
-                      style: GoogleFonts.poppins(
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-
-                  /// SYSTEM SECTION
-                  sectionTitle("System"),
-
-                  infoTile("Hostname", info["Static hostname"] ?? ""),
-                  infoTile("Operating System", info["Operating System"] ?? ""),
-                  infoTile("Kernel", info["Kernel"] ?? ""),
-                  infoTile("Architecture", info["Architecture"] ?? ""),
-
-                  /// HARDWARE
-                  sectionTitle("Hardware"),
-
-                  infoTile("Machine ID", info["Machine ID"] ?? ""),
-                  infoTile("Boot ID", info["Boot ID"] ?? ""),
-                  infoTile("Chassis", info["Chassis"] ?? ""),
-
-                ],
+            /// PROFILE ICON
+            const CircleAvatar(
+              radius: 45,
+              backgroundColor: Color(0xFFB6FF00),
+              child: Icon(
+                Icons.dns,
+                size: 40,
+                color: Colors.black,
               ),
             ),
+
+            const SizedBox(height: 12),
+
+            /// HOSTNAME
+            Center(
+              child: Text(
+                info["Static hostname"] ?? "Loading...",
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 5),
+
+            Center(
+              child: Text(
+                info["Operating System"] ?? "Loading...",
+                style: GoogleFonts.poppins(
+                  color: Colors.grey,
+                ),
+              ),
+            ),
+
+            /// SYSTEM SECTION
+            sectionTitle("System"),
+
+            infoTile("Hostname", info["Static hostname"] ?? "Loading..."),
+            infoTile("Operating System", info["Operating System"] ?? "Loading..."),
+            infoTile("Kernel", info["Kernel"] ?? "Loading..."),
+            infoTile("Architecture", info["Architecture"] ?? "Loading..."),
+            infoTile("Public IP", info["Public IP"] ?? "Loading..."),
+
+            /// HARDWARE SECTION
+            sectionTitle("Hardware"),
+
+            infoTile("Machine ID", info["Machine ID"] ?? "Loading..."),
+            infoTile("Boot ID", info["Boot ID"] ?? "Loading..."),
+            infoTile("Chassis", info["Chassis"] ?? "Loading..."),
+
+          ],
+        ),
+      ),
     );
   }
 }

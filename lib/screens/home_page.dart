@@ -145,6 +145,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget systemCard() {
+    bool hasBattery = batteryStatus != "N/A";
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -152,75 +154,104 @@ class _HomePageState extends State<HomePage> {
         color: const Color(0xFFB6FF00),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          /// BIG VALUE (Hostname like temperature)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 hostname,
                 style: const TextStyle(
-                  color: Colors.black,
+                  fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  fontSize: 20,
+                  color: Colors.black,
                 ),
               ),
-              const SizedBox(height: 3),
-              Text(
-                "Uptime: $uptime",
-                style: const TextStyle(color: Colors.black),
+
+              const CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(Icons.memory, color: Colors.black),
               ),
-              const SizedBox(height: 10),
-              Row(
+            ],
+          ),
+
+          const SizedBox(height: 15),
+
+          /// DIVIDER
+          Container(
+            height: 2,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: const Color.fromARGB(255, 172, 240, 1),
+              borderRadius: BorderRadius.circular(100),
+            ),
+          ),
+
+          const SizedBox(height: 15),
+
+          /// STATS ROW
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              /// BATTERY OR UPTIME
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Memory",
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        "$memoryUsed / $totalMemory MB",
-                        style: const TextStyle(color: Colors.black),
-                      ),
-                    ],
+                  Text(
+                    hasBattery ? "$batteryStatus%" : uptime,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.black,
+                    ),
                   ),
-                  const SizedBox(width: 20),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Battery",
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        "$batteryStatus %",
-                        style: const TextStyle(color: Colors.black),
-                      ),
-                    ],
+                  Text(
+                    hasBattery ? "Battery" : "Uptime",
+                    style: const TextStyle(color: Colors.black54),
+                  ),
+                ],
+              ),
+
+              /// MEMORY
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "$memoryUsed MB",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.black,
+                    ),
+                  ),
+                  const Text(
+                    "Memory Used",
+                    style: TextStyle(color: Colors.black54),
+                  ),
+                ],
+              ),
+
+              /// TOTAL MEMORY
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "$totalMemory MB",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.black,
+                    ),
+                  ),
+                  const Text(
+                    "Total Memory",
+                    style: TextStyle(color: Colors.black54),
                   ),
                 ],
               ),
             ],
-          ),
-          SizedBox(
-            width: 80,
-            height: 80,
-            child: CircularProgressIndicator(
-              value: memoryPercent,
-              strokeWidth: 8,
-              strokeCap: StrokeCap.round,
-              backgroundColor: Colors.white,
-              valueColor: const AlwaysStoppedAnimation(Colors.black),
-            ),
           ),
         ],
       ),
