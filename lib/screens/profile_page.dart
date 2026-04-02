@@ -107,13 +107,13 @@ class _ProfilePageState extends State<ProfilePage> {
       appBar: AppBar(
       automaticallyImplyLeading: false,
         backgroundColor: Colors.black,
-        title: Text(
-          "Profile",
+        title: Center(
+          child: Text("Profile"),
         ),
       ),
 
       body: loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 182, 255, 0),))
           : Padding(
               padding: const EdgeInsets.all(16),
 

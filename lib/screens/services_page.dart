@@ -107,12 +107,17 @@ class _ServicesPageState extends State<ServicesPage> {
       backgroundColor: Colors.black,
 
       appBar: AppBar(
-        title: const Text("Services"),
+        automaticallyImplyLeading: false,
+        title: Center(
+          child: Text(
+            "Services",
+          ),
+        ),
         backgroundColor: Colors.black,
       ),
 
       body: loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 182, 255, 0),))
           : ListView(
               padding: const EdgeInsets.all(10),
               scrollDirection: Axis.vertical,
