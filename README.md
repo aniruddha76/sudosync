@@ -146,9 +146,10 @@ sudo systemctl start ssh
 
 <tr>
 <td><img src="https://github.com/user-attachments/assets/dc20c668-6c37-4c69-a7dd-0927745cb64d" width="250"/></td>
+ <td><img src="https://github.com/user-attachments/assets/21a8cf74-00a6-4523-b5be-3476ef33362b" width="250"></td>
 </tr>
 </table>
----
+
 
 # Project Structure
 
