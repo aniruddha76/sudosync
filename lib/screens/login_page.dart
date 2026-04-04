@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import '../service/ssh_service.dart';
+import '../service/server_storage.dart';
+import '../models/server.dart';
 import 'home_page.dart';
+import 'dart:math';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -11,27 +14,15 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage>
-    with SingleTickerProviderStateMixin {
+class _LoginPageState extends State<LoginPage> {
   final ip = TextEditingController();
   final user = TextEditingController();
   final pass = TextEditingController();
 
   final ssh = SSHService();
+  final storage = ServerStorage();
 
   bool isLoading = false;
-
-  // late AnimationController controller;
-
-  // @override
-  // void initState() {
-  //   super.initState();
-
-  //   controller = AnimationController(
-  //     vsync: this,
-  //     duration: const Duration(milliseconds: 800),
-  //   )..repeat(reverse: true);
-  // }
 
   Future<void> connect() async {
     setState(() {
@@ -41,9 +32,25 @@ class _LoginPageState extends State<LoginPage>
     try {
       await ssh.connect(ip.text, user.text, pass.text);
 
+      String generateId() {
+        return DateTime.now().millisecondsSinceEpoch.toString() +
+            Random().nextInt(9999).toString();
+      }
+
+      // SAVE SERVER AFTER SUCCESSFUL LOGIN
+      await storage.saveServer(
+        Server(
+          id: generateId(),
+          name: ip.text, // you can later add a name field
+          host: ip.text,
+          username: user.text,
+          password: pass.text,
+        ),
+      );
+
       if (!mounted) return;
 
-      Navigator.push(
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => HomePage(ssh: ssh)),
       );
@@ -74,12 +81,6 @@ class _LoginPageState extends State<LoginPage>
       size: 50,
     );
   }
-
-  // @override
-  // void dispose() {
-  //   controller.dispose();
-  //   super.dispose();
-  // }
 
   @override
   Widget build(BuildContext context) {
@@ -113,8 +114,11 @@ class _LoginPageState extends State<LoginPage>
 
                 TextField(
                   controller: ip,
+                  style: const TextStyle(color: Colors.white),
+
                   decoration: const InputDecoration(
-                    labelText: 'Ip address',
+                    labelText: 'IP Address',
+                    labelStyle: TextStyle(color: Colors.white70),
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -123,8 +127,11 @@ class _LoginPageState extends State<LoginPage>
 
                 TextField(
                   controller: user,
+                  style: const TextStyle(color: Colors.white),
+
                   decoration: const InputDecoration(
                     labelText: 'Username',
+                    labelStyle: TextStyle(color: Colors.white70),
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -134,8 +141,11 @@ class _LoginPageState extends State<LoginPage>
                 TextField(
                   controller: pass,
                   obscureText: true,
+                  style: const TextStyle(color: Colors.white),
+
                   decoration: const InputDecoration(
                     labelText: 'Password',
+                    labelStyle: TextStyle(color: Colors.white70),
                     border: OutlineInputBorder(),
                   ),
                 ),
