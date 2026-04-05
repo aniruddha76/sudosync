@@ -59,7 +59,7 @@ class _ServerListPageState extends State<ServerListPage> {
       padding: const EdgeInsets.all(16),
 
       decoration: BoxDecoration(
-        color: const Color(0xff111111),
+        color: const Color(0xFF1C1C1E),
         borderRadius: BorderRadius.circular(12),
       ),
 
@@ -130,25 +130,39 @@ class _ServerListPageState extends State<ServerListPage> {
 
           child: Column(
             children: [
-              const SizedBox(height: 20),
 
               Text(
-                "SudoSync",
-                style: GoogleFonts.lobsterTwo(
-                  fontSize: 46,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  "SudoSync",
+                  style: GoogleFonts.lobsterTwo(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 50,
+                    color: Colors.white,
+                  ),
                 ),
+
+              Text(
+                textAlign: TextAlign.center,
+                "SudoSync is currently in early development. Please use with caution.",
+                style: TextStyle(
+                  color: Colors.white70, 
+                  fontSize: 10, 
+                  fontStyle: FontStyle.italic,
+                  ),
               ),
 
-              const SizedBox(height: 8),
+              SizedBox(height: 16),
 
-              const Text(
-                "Your Servers",
-                style: TextStyle(color: Colors.white70, fontSize: 16),
+              Row(
+                children: [
+                  Text(
+                    "My Servers",
+                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                    
+                  ),
+                ],
               ),
 
-              const SizedBox(height: 30),
+              SizedBox(height: 16),
 
               Expanded(
                 child: servers.isEmpty
@@ -187,22 +201,15 @@ class _ServerListPageState extends State<ServerListPage> {
 
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFB6FF00),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                    shape: CircleBorder(
                     ),
                   ),
 
-                  child: const Text(
-                    "Add Server",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: Icon(Icons.add, color: Colors.black, size: 28),
                 ),
               ),
 
-              const SizedBox(height: 10),
+              SizedBox(height: 16),
             ],
           ),
         ),
