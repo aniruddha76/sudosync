@@ -187,7 +187,7 @@ class _ServerListPageState extends State<ServerListPage> {
 
               SizedBox(
                 width: double.infinity,
-                height: 48,
+                height: 54,
 
                 child: ElevatedButton(
                   onPressed: () async {
@@ -205,11 +205,18 @@ class _ServerListPageState extends State<ServerListPage> {
                     ),
                   ),
 
-                  child: Icon(Icons.add, color: Colors.black, size: 28),
+                  child: Icon(Icons.add, color: Colors.black, size: 35),
                 ),
               ),
 
-              SizedBox(height: 16),
+              SizedBox(height: 10),
+
+              Text(
+                "Add Server",
+                style: TextStyle(color: Colors.white60, fontSize: 12),
+              ),
+
+              SizedBox(height: 15),
             ],
           ),
         ),
