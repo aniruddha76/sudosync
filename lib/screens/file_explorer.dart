@@ -430,10 +430,10 @@ class _FileExplorerState extends State<FileExplorer> {
       child: Scaffold(
         backgroundColor: Colors.black,
         floatingActionButton: Padding(
-          padding: const EdgeInsets.only(bottom: 40),
+          padding: const EdgeInsets.only(bottom: 40, right: 20),
           child: SizedBox(
-            width: 48,
-            height: 48,
+            width: 54,
+            height: 54,
             child: FloatingActionButton(
               hoverElevation: 0,
               shape: RoundedRectangleBorder(

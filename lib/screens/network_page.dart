@@ -218,7 +218,7 @@ class _NetworkPageState extends State<NetworkPage> {
       height: 90,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1C),
+        color: const Color(0xFF1C1C1E),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -262,7 +262,7 @@ class _NetworkPageState extends State<NetworkPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1C),
+        color: const Color(0xFF1C1C1E),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
