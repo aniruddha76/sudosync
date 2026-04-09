@@ -11,7 +11,8 @@ class ServicesPage extends StatefulWidget {
 }
 
 class _ServicesPageState extends State<ServicesPage> {
-  List<Map<String, String>> services = [];
+  List<Map<String, String>> allServices = [];
+  List<Map<String, String>> filteredServices = [];
   bool loading = true;
 
   @override
@@ -23,7 +24,7 @@ class _ServicesPageState extends State<ServicesPage> {
   Future<void> loadServices() async {
     try {
       final result = await widget.ssh.runCommand(
-        "systemctl list-units --type=service --no-pager --no-legend",
+        "systemctl list-units --user --type=service --all --no-pager --no-legend",
       );
 
       List<Map<String, String>> parsed = [];
@@ -42,7 +43,8 @@ class _ServicesPageState extends State<ServicesPage> {
       }
 
       setState(() {
-        services = parsed;
+        allServices = parsed;
+        filteredServices = parsed;
         loading = false;
       });
     } catch (e) {
@@ -55,6 +57,18 @@ class _ServicesPageState extends State<ServicesPage> {
   Future<void> runCommand(String command) async {
     await widget.ssh.run(command);
     loadServices();
+  }
+
+  void filterServices(String query) {
+    setState(() {
+      filteredServices = allServices.where((service) {
+        final name = service["name"]!.toLowerCase();
+        final status = service["status"]!.toLowerCase();
+        final search = query.toLowerCase();
+
+        return name.contains(search) || status.contains(search);
+      }).toList();
+    });
   }
 
   Widget serviceCard(String name, String status) {
@@ -108,22 +122,45 @@ class _ServicesPageState extends State<ServicesPage> {
 
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Center(
-          child: Text(
-            "Services",
-          ),
-        ),
+        title: Center(child: Text("Services")),
         backgroundColor: Colors.black,
       ),
 
       body: loading
-          ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 182, 255, 0),))
-          : ListView(
-              padding: const EdgeInsets.all(10),
-              scrollDirection: Axis.vertical,
-              children: services
-                  .map((s) => serviceCard(s["name"]!, s["status"]!))
-                  .toList(),
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Color.fromARGB(255, 182, 255, 0),
+              ),
+            )
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: TextField(
+                    style: const TextStyle(color: Colors.white),
+                    onChanged: filterServices,
+                    decoration: InputDecoration(
+                      hintText: "Search services...",
+                      hintStyle: const TextStyle(color: Colors.grey),
+                      prefixIcon: const Icon(Icons.search, color: Color.fromARGB(255, 182, 255, 0)),
+                      filled: true,
+                      fillColor: const Color(0xFF1C1C1E),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(10),
+                    children: filteredServices
+                        .map((s) => serviceCard(s["name"]!, s["status"]!))
+                        .toList(),
+                  ),
+                ),
+              ],
             ),
     );
   }

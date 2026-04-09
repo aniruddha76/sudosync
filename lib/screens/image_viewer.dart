@@ -52,7 +52,7 @@ class _ImageViewerState extends State<ImageViewer> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Image Viewer"),
+        title: Text(widget.path.split("/").last),
         actions: [
 
           IconButton(
