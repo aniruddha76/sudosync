@@ -24,7 +24,7 @@ class _ServicesPageState extends State<ServicesPage> {
   Future<void> loadServices() async {
     try {
       final result = await widget.ssh.runCommand(
-        "systemctl list-units --user --type=service --all --no-pager --no-legend",
+        "systemctl list-units --type=service --all --no-pager --no-legend",
       );
 
       List<Map<String, String>> parsed = [];

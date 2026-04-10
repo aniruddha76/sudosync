@@ -1,197 +1,204 @@
-# SudoSync
+<div align="center">
 
-A lightweight **Flutter application** that allows you to **monitor and control your Linux system remotely via SSH**.
+<h1>SudoSync</h1>
 
-SudoSync was created to eliminate the need to repeatedly open a terminal for small tasks like checking CPU usage, disk usage, memory stats, or managing processes. Instead, everything is available through a **clean and simple mobile interface**.
+<img src="https://img.shields.io/github/stars/aniruddha76/sudosync?style=for-the-badge" />
+<img src="https://img.shields.io/github/forks/aniruddha76/sudosync?style=for-the-badge" />
+<img src="https://img.shields.io/github/downloads/aniruddha76/sudosync/total?style=for-the-badge" />
+<img src="https://img.shields.io/github/last-commit/aniruddha76/sudosync?style=for-the-badge" />
+<img src="https://img.shields.io/github/license/aniruddha76/sudosync?style=for-the-badge" />
+
+<br />
+<br />
+
+<b>Monitor and control your Linux system remotely via SSH</b>
+
+<br />
+
+A lightweight Flutter app that replaces repetitive terminal commands  
+with a clean and simple mobile interface.
+
+<a href="#features">Features</a> •
+<a href="#installation">Installation</a> •
+<a href="#usage">Usage</a> •
+<a href="#screenshots">Screenshots</a> •
+<a href="#contributing">Contributing</a>
+
+</div>
 
 ---
 
-# Overview
+## Overview
 
-If you work with Linux systems regularly, you probably run commands like:
+If you work with Linux systems regularly, you probably run:
 
-```
+```bash
 top
 df -h
 free -h
-```
+````
 
-many times a day.
+multiple times a day.
 
-SudoSync brings these system insights directly to your phone, allowing you to **monitor system health and manage processes remotely without opening a terminal**.
+**SudoSync** eliminates that repetition by bringing system monitoring and control directly to your phone.
 
----
+## Features
 
-# Features
-
-## Remote System Monitoring
+### System Monitoring
 
 * CPU usage
 * Memory usage
 * Load average
 * System temperature
-* Storage
+* Disk usage
 
-## Disk Monitoring
+### Disk Monitoring
 
-* Displays output of `df -h`
-* Shows total storage and used percentage for all mounted drives
+* Displays `df -h` output
+* Shows storage usage across mounted drives
 
-## Process Manager
+### Process Manager
 
-* View **top processes by CPU usage**
-* Kill processes directly from the app
+* View top processes by CPU usage
+* Kill processes directly
 
-## File Explorer
+### File Explorer
 
 * Browse remote directories
-* Open and download files
+* Download files
 
-## Control Panel
+### Control Panel
 
-* Adjust system volume
-* Lock
+* Volume control
+* Lock system
 * Shutdown
 * Restart
 * Suspend
 * Mute
-* Display off
+* Turn display off
 
-## Terminal
+### Terminal
 
-* Connect to your Linux machine securely via SSH
-* Built using `dartssh2`
+* Full SSH terminal access
+* Powered by `dartssh2`
 
----
+## Tech Stack
 
-# Tech Stack
+| Technology | Purpose              |
+| ---------- | -------------------- |
+| Flutter    | UI framework         |
+| Dart       | Programming language |
+| dartssh2   | SSH connection       |
+| Linux CLI  | System data          |
 
-| Technology      | Purpose                    |
-| --------------- | -------------------------- |
-| Flutter         | Mobile UI framework        |
-| Dart            | Programming language       |
-| dartssh2        | SSH connection library     |
-| Linux CLI Tools | System monitoring commands |
+## Installation
 
----
+### Clone the repository
 
-# Installation
-
-## 1 Clone the repository
-
-```
-git clone https://github.com/yourusername/sudosync.git
+```bash
+git clone https://github.com/aniruddha76/sudosync.git
 cd sudosync
 ```
 
-## 2 Install dependencies
+### Install dependencies
 
-```
+```bash
 flutter pub get
 ```
 
-## 3 Run the application
+### Run the app
 
-```
+```bash
 flutter run
 ```
 
----
 
-# Requirements
+## Requirements
 
 * Linux machine with **SSH enabled**
-* SSH username and password
-* loginctl installed
+* SSH credentials
+* `loginctl` installed
 
-Enable SSH if it is not already enabled:
+Enable SSH:
 
-```
+```bash
 sudo systemctl enable ssh
 sudo systemctl start ssh
 ```
 
----
+## Usage
 
-# Usage
-
-1. Launch the application
-2. Enter the **server IP address**
-3. Enter your **SSH username and password**
+1. Open the app
+2. Enter server IP
+3. Enter SSH credentials
 4. Tap **Connect**
-5. Monitor and control your system remotely
+5. Start managing your system
 
----
+## Screenshots
 
-## 📱 Screenshots
+<div align="center">
 
-<table>
-<tr>
-<td><img src="https://github.com/user-attachments/assets/d024a4ce-b922-4c2e-bd7c-b1f9ee963dfb" width="250"/></td>
-<td><img src="https://github.com/user-attachments/assets/26fb1c01-49f9-4ad1-9285-176dfff77cb3" width="250"/></td>
-<td><img src="https://github.com/user-attachments/assets/b7ac970b-f89b-44ee-8950-6f368efea07a" width="250"/></td>
-</tr>
+<img src="https://github.com/user-attachments/assets/d024a4ce-b922-4c2e-bd7c-b1f9ee963dfb" width="250"/>
+<img src="https://github.com/user-attachments/assets/26fb1c01-49f9-4ad1-9285-176dfff77cb3" width="250"/>
+<img src="https://github.com/user-attachments/assets/b7ac970b-f89b-44ee-8950-6f368efea07a" width="250"/>
 
-<tr>
-<td><img src="https://github.com/user-attachments/assets/486591aa-8ae8-4da6-96cf-72a6b404cf35" width="250"/></td>
-<td><img src="https://github.com/user-attachments/assets/66a8155d-b88f-440d-b61d-da2cb5ee8993" width="250"/></td>
-<td><img src="https://github.com/user-attachments/assets/20483f35-4107-40e3-937e-ee4377beec53" width="250"/></td>
-</tr>
+<br />
 
-<tr>
-<td><img src="https://github.com/user-attachments/assets/c8ded873-409c-493b-b903-c61d10078d84" width="250"/></td>
-<td><img src="https://github.com/user-attachments/assets/32c5997c-e5dd-44f2-9a2d-a990ecacb925" width="250"/></td>
-<td><img src="https://github.com/user-attachments/assets/ef89d9b3-7e79-4ad6-bc26-530845f354f3" width="250"/></td>
-</tr>
+<img src="https://github.com/user-attachments/assets/486591aa-8ae8-4da6-96cf-72a6b404cf35" width="250"/>
+<img src="https://github.com/user-attachments/assets/66a8155d-b88f-440d-b61d-da2cb5ee8993" width="250"/>
+<img src="https://github.com/user-attachments/assets/20483f35-4107-40e3-937e-ee4377beec53" width="250"/>
 
-<tr>
-<td><img src="https://github.com/user-attachments/assets/dc20c668-6c37-4c69-a7dd-0927745cb64d" width="250"/></td>
- <td><img src="https://github.com/user-attachments/assets/21a8cf74-00a6-4523-b5be-3476ef33362b" width="250"></td>
-</tr>
-</table>
+<br />
 
+<img src="https://github.com/user-attachments/assets/c8ded873-409c-493b-b903-c61d10078d84" width="250"/>
+<img src="https://github.com/user-attachments/assets/32c5997c-e5dd-44f2-9a2d-a990ecacb925" width="250"/>
+<img src="https://github.com/user-attachments/assets/ef89d9b3-7e79-4ad6-bc26-530845f354f3" width="250"/>
 
-# Project Structure
+<br />
 
-```
+<img src="https://github.com/user-attachments/assets/dc20c668-6c37-4c69-a7dd-0927745cb64d" width="250"/>
+<img src="https://github.com/user-attachments/assets/21a8cf74-00a6-4523-b5be-3476ef33362b" width="250"/>
+
+</div>
+
+## Project Structure
+
+```bash
 lib/
- ├── screens/
- │   ├── control_panel.dart
- │   ├── file_explorer.dart
- │   ├─── home_page.dart
- │   ├── image_viewer.dart
- │   ├── login_page.dart
- │   ├── system_monitor.dart
- │   └── terminal_screen.dart
- │
- ├── service/
- │   └── ssh_service.dart
- │
- └── main.dart
+├── screens/
+│   ├── control_panel.dart
+│   ├── file_explorer.dart
+│   ├── home_page.dart
+│   ├── image_viewer.dart
+│   ├── login_page.dart
+│   ├── system_monitor.dart
+│   └── terminal_screen.dart
+│
+├── service/
+│   └── ssh_service.dart
+│
+└── main.dart
 ```
 
----
-
-# Contributing
+## Contributing
 
 Contributions are welcome.
 
-1. Fork the repository
-2. Create a new branch
-3. Commit your changes
-4. Submit a Pull Request
+* Fork the repo
+* Create a branch
+* Make changes
+* Open a Pull Request
 
----
+## License
 
-# License
+MIT License
 
-This project is licensed under the **MIT License**.
+## Author
 
----
+**Aniruddha**
+[https://github.com/aniruddha76](https://github.com/aniruddha76)
 
-# Author
+## Support
 
-Built by **Aniruddha**
-
----
-
+If you like this project, consider giving it a ⭐
+and open issues if you find bugs or have suggestions.
