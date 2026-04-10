@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:dartssh2/dartssh2.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
@@ -214,9 +215,9 @@ class _FileExplorerState extends State<FileExplorer> {
     );
   }
 
-  // Future<void> requestPermission() async {
-  //   await Permission.manageExternalStorage.request();
-  // }
+  Future<void> requestPermission() async {
+    await Permission.manageExternalStorage.request();
+  }
 
   bool isDownloadCancelled = false;
 
@@ -275,9 +276,7 @@ class _FileExplorerState extends State<FileExplorer> {
       Directory downloadsDir;
 
       if (Platform.isAndroid) {
-        downloadsDir =
-            await getExternalStorageDirectory() ??
-            await getApplicationDocumentsDirectory();
+        downloadsDir = Directory("/storage/emulated/0/Download");
       } else {
         downloadsDir = await getApplicationDocumentsDirectory();
       }
