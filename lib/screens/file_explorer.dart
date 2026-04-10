@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:dartssh2/dartssh2.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:file_picker/file_picker.dart';
 
 import '../service/ssh_service.dart';
@@ -191,28 +190,111 @@ class _FileExplorerState extends State<FileExplorer> {
     }
   }
 
-  Future<void> requestPermission() async {
-    await Permission.manageExternalStorage.request();
+  void showFileInfo(SftpName file) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1C1C1E),
+          title: const Text("File Info", style: TextStyle(color: Colors.white)),
+          content: Text(
+            "Name: ${file.filename}\n\n"
+            "Type: ${isDirectory(file) ? "Folder" : "File"}\n\n"
+            "Details:\n${file.longname}",
+            style: const TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Close"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
+  // Future<void> requestPermission() async {
+  //   await Permission.manageExternalStorage.request();
+  // }
+
+  bool isDownloadCancelled = false;
+
   Future<void> downloadFile(String remotePath) async {
+    double progress = 0;
+
+    late StateSetter setDialogState;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            setDialogState = setState;
+
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1C1C1E),
+              title: const Text(
+                "Downloading...",
+                style: TextStyle(color: Colors.white),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  LinearProgressIndicator(value: progress),
+                  const SizedBox(height: 10),
+                  Text(
+                    "${(progress * 100).toStringAsFixed(0)}%",
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    isDownloadCancelled = true;
+                    Navigator.pop(context);
+                  },
+                  child: const Text("Cancel"),
+                ),
+              ],  
+            );
+          },
+        );
+      },
+    );
+
     try {
       final name = remotePath.split("/").last;
 
       final remoteFile = await widget.ssh.sftp!.open(remotePath);
       final stat = await remoteFile.stat();
-
       final totalSize = stat.size ?? 0;
 
       Directory downloadsDir;
 
       if (Platform.isAndroid) {
-        downloadsDir = Directory("/storage/emulated/0/Download");
+        downloadsDir =
+            await getExternalStorageDirectory() ??
+            await getApplicationDocumentsDirectory();
       } else {
         downloadsDir = await getApplicationDocumentsDirectory();
       }
 
-      final localFile = File("${downloadsDir.path}/$name");
+      if (!await downloadsDir.exists()) {
+        await downloadsDir.create(recursive: true);
+      }
+
+      String filePath = "${downloadsDir.path}/$name";
+      File localFile = File(filePath);
+
+      // Handle duplicate
+      if (await localFile.exists()) {
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        filePath = "${downloadsDir.path}/${timestamp}_$name";
+        localFile = File(filePath);
+      }
 
       final sink = localFile.openWrite();
 
@@ -221,31 +303,42 @@ class _FileExplorerState extends State<FileExplorer> {
       final stream = remoteFile.read();
 
       await for (final chunk in stream) {
-        received += chunk.length;
+        if (isDownloadCancelled) {
+          await sink.close();
+          await remoteFile.close();
 
+          if (await localFile.exists()) {
+            await localFile.delete();
+          }
+
+          Navigator.pop(context);
+
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Download cancelled")));
+          return;
+        }
+
+        received += chunk.length;
         sink.add(chunk);
 
         if (totalSize != 0) {
-          setState(() {
-            downloadProgress = received / totalSize;
-          });
+          progress = received / totalSize;
+
+          setDialogState(() {});
         }
       }
 
       await sink.close();
       await remoteFile.close();
 
-      setState(() {
-        downloadProgress = 0;
-      });
+      Navigator.pop(context);
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Downloaded: ${localFile.path}")));
+      ).showSnackBar(SnackBar(content: Text("Downloaded: $filePath")));
     } catch (e) {
-      setState(() {
-        downloadProgress = 0;
-      });
+      Navigator.pop(context);
 
       ScaffoldMessenger.of(
         context,
@@ -333,14 +426,48 @@ class _FileExplorerState extends State<FileExplorer> {
 
   Widget deviceCard({required SftpName file}) {
     return GestureDetector(
-      onTap: () {
-        openItem(file);
-      },
-      onLongPress: () async {
-        if (!isDirectory(file)) {
-          await requestPermission();
-          await downloadFile("$currentPath/${file.filename}");
+      onTap: () async {
+        final path = "$currentPath/${file.filename}";
+
+        if (isDirectory(file) || isImage(file.filename)) {
+          openItem(file);
+          return;
         }
+
+        // if file then show popup dialog
+        showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1C1C1E),
+              title: Text(
+                file.filename,
+                style: const TextStyle(color: Colors.white),
+              ),
+              content: const Text(
+                "Choose an action",
+                style: TextStyle(color: Colors.white70),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    isDownloadCancelled = false;
+                    await downloadFile(path);
+                  },
+                  child: const Text("Download"),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    showFileInfo(file);
+                  },
+                  child: const Text("Info"),
+                ),
+              ],
+            );
+          },
+        );
       },
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6),
