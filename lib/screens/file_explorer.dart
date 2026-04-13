@@ -259,7 +259,7 @@ class _FileExplorerState extends State<FileExplorer> {
                   },
                   child: const Text("Cancel"),
                 ),
-              ],  
+              ],
             );
           },
         );
@@ -268,10 +268,6 @@ class _FileExplorerState extends State<FileExplorer> {
 
     try {
       final name = remotePath.split("/").last;
-
-      final remoteFile = await widget.ssh.sftp!.open(remotePath);
-      final stat = await remoteFile.stat();
-      final totalSize = stat.size ?? 0;
 
       Directory downloadsDir;
 
@@ -292,44 +288,24 @@ class _FileExplorerState extends State<FileExplorer> {
       if (await localFile.exists()) {
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         filePath = "${downloadsDir.path}/${timestamp}_$name";
-        localFile = File(filePath);
       }
 
-      final sink = localFile.openWrite();
-
-      int received = 0;
-
-      final stream = remoteFile.read();
-
-      await for (final chunk in stream) {
-        if (isDownloadCancelled) {
-          await sink.close();
-          await remoteFile.close();
-
-          if (await localFile.exists()) {
-            await localFile.delete();
-          }
-
-          Navigator.pop(context);
-
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text("Download cancelled")));
-          return;
-        }
-
-        received += chunk.length;
-        sink.add(chunk);
-
-        if (totalSize != 0) {
-          progress = received / totalSize;
-
+      await widget.ssh.downloadFile(
+        remotePath: remotePath,
+        localPath: filePath,
+        onProgress: (p) {
+          progress = p;
           setDialogState(() {});
-        }
-      }
+        },
+        isCancelled: () => isDownloadCancelled,
+      );
 
-      await sink.close();
-      await remoteFile.close();
+      if (isDownloadCancelled) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Download cancelled")));
+        return;
+      }
 
       Navigator.pop(context);
 
@@ -345,27 +321,84 @@ class _FileExplorerState extends State<FileExplorer> {
     }
   }
 
+  bool isFileUploadCancelled = false;
+
   Future<void> uploadFile() async {
+
+    isFileUploadCancelled = false;
+
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles();
+      FilePickerResult? result = await FilePicker.pickFiles(
+        type: FileType.any,
+      );
 
       if (result == null) return;
 
       final file = File(result.files.single.path!);
       final name = result.files.single.name;
-
       final remotePath = "$currentPath/$name";
 
-      final remoteFile = await widget.ssh.sftp!.open(
-        remotePath,
-        mode: SftpFileOpenMode.create | SftpFileOpenMode.write,
+      double progress = 0;
+      late StateSetter setDialogState;
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setState) {
+              setDialogState = setState;
+
+              return AlertDialog(
+                backgroundColor: const Color(0xFF1C1C1E),
+                title: const Text(
+                  "Uploading...",
+                  style: TextStyle(color: Colors.white),
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    LinearProgressIndicator(value: progress),
+                    const SizedBox(height: 10),
+                    Text(
+                      "${(progress * 100).toStringAsFixed(0)}%",
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      isFileUploadCancelled = true;
+                      Navigator.pop(context);
+                    },
+                    child: const Text("Cancel"),
+                  ),
+                ]
+              );
+            },
+          );
+        },
       );
 
-      await remoteFile.write(
-        file.openRead().map((data) => Uint8List.fromList(data)),
+      await widget.ssh.uploadFile(
+        localPath: file.path,
+        remotePath: remotePath,
+        onProgress: (p) {
+          progress = p;
+          setDialogState(() {});
+        },
+        isCancelled: () => isFileUploadCancelled,
       );
 
-      await remoteFile.close();
+      if (isFileUploadCancelled) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Upload cancelled")));
+        return;
+      }
+
+      Navigator.pop(context);
 
       await loadFiles(currentPath);
 
@@ -373,43 +406,80 @@ class _FileExplorerState extends State<FileExplorer> {
         context,
       ).showSnackBar(const SnackBar(content: Text("File uploaded")));
     } catch (e) {
+      Navigator.pop(context);
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Upload failed: $e")));
     }
   }
 
-  Future<void> uploadFolder() async {
+  bool isUploadingFolderCancelled = false;
+
+  Future<void> uploadFolder() async {  
+    isUploadingFolderCancelled = false;
     try {
-      String? dir = await FilePicker.platform.getDirectoryPath();
+      String? dir = await FilePicker.getDirectoryPath();
 
       if (dir == null) return;
 
-      final directory = Directory(dir);
-      final entities = directory.listSync(recursive: true);
+      final folderName = dir.split("/").last;
+      final remoteBasePath = "$currentPath/$folderName";
 
-      for (var entity in entities) {
-        if (entity is File) {
-          final relative = entity.path.replaceFirst(dir, "");
-          final remotePath = "$currentPath$relative";
+      double progress = 0;
+      late StateSetter setDialogState;
 
-          try {
-            await widget.ssh.sftp!.mkdir(
-              remotePath.substring(0, remotePath.lastIndexOf("/")),
-            );
-          } catch (_) {}
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setState) {
+              setDialogState = setState;
 
-          final remoteFile = await widget.ssh.sftp!.open(
-            remotePath,
-            mode: SftpFileOpenMode.create | SftpFileOpenMode.write,
+              return AlertDialog(
+                backgroundColor: const Color(0xFF1C1C1E),
+                title: const Text(
+                  "Uploading Folder...",
+                  style: TextStyle(color: Colors.white),
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    LinearProgressIndicator(value: progress),
+                    const SizedBox(height: 10),
+                    Text(
+                      "${(progress * 100).toStringAsFixed(0)}%",
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      isUploadingFolderCancelled = true;
+                      Navigator.pop(context);
+                    },
+                    child: const Text("Cancel"),
+                  ),
+                ],
+              );
+            },
           );
+        },
+      );
 
-          await remoteFile.write(
-            entity.openRead().map((data) => Uint8List.fromList(data)),
-          );
-          await remoteFile.close();
-        }
-      }
+      await widget.ssh.uploadFolder(
+        localDirPath: dir,
+        remoteDirPath: remoteBasePath,
+        onProgress: (p) {
+          progress = p;
+          setDialogState(() {});
+        },
+        isCancelled: () => isUploadingFolderCancelled,
+      );
+
+      Navigator.pop(context);
 
       await loadFiles(currentPath);
 
@@ -417,6 +487,8 @@ class _FileExplorerState extends State<FileExplorer> {
         context,
       ).showSnackBar(const SnackBar(content: Text("Folder uploaded")));
     } catch (e) {
+      Navigator.pop(context);
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Folder upload failed: $e")));

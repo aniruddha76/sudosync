@@ -28,22 +28,29 @@ class _ImageViewerState extends State<ImageViewer> {
     downloadImage();
   }
 
-  Future<void> downloadImage() async {
+bool isDownloadCancelled = false;
 
-    final tempDir = await getTemporaryDirectory();
+Future<void> downloadImage() async {
+  Directory tempDir;
+    if (Platform.isAndroid) {
+      tempDir = Directory("/storage/emulated/0/Download");
+    } else {
+      tempDir = await getTemporaryDirectory();
+    }
+    
+    final localPath = "${tempDir.path}/${widget.path.split("/").last}";
 
-    final name = widget.path.split("/").last;
+    await widget.ssh.downloadFile(
+      remotePath: widget.path,
+      localPath: localPath,
+      onProgress: (p) {
 
-    final file = File("${tempDir.path}/$name");
-
-    final remote = await widget.ssh.sftp!.open(widget.path);
-
-    final bytes = await remote.readBytes();
-
-    await file.writeAsBytes(bytes);
+      },
+      isCancelled: () => false,
+    );
 
     setState(() {
-      image = file;
+      image = File(localPath);
     });
   }
 
@@ -57,14 +64,7 @@ class _ImageViewerState extends State<ImageViewer> {
 
           IconButton(
             icon: const Icon(Icons.download),
-            onPressed: () async {
-
-              final file = await widget.ssh.downloadFile(widget.path);
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("Saved to ${file?.path}")),
-              );
-            },
+            onPressed: null
           ),
 
           IconButton(
@@ -99,8 +99,4 @@ class _ImageViewerState extends State<ImageViewer> {
       ),
     );
   }
-}
-
-extension on Object? {
-  get path => null;
 }
