@@ -255,7 +255,9 @@ class _FileExplorerState extends State<FileExplorer> {
                 TextButton(
                   onPressed: () {
                     isDownloadCancelled = true;
-                    Navigator.pop(context);
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    }
                   },
                   child: const Text("Cancel"),
                 ),
@@ -307,13 +309,17 @@ class _FileExplorerState extends State<FileExplorer> {
         return;
       }
 
-      Navigator.pop(context);
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
 
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Downloaded: $filePath")));
     } catch (e) {
-      Navigator.pop(context);
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
 
       ScaffoldMessenger.of(
         context,
@@ -324,21 +330,20 @@ class _FileExplorerState extends State<FileExplorer> {
   bool isFileUploadCancelled = false;
 
   Future<void> uploadFile() async {
-
     isFileUploadCancelled = false;
 
     try {
-      FilePickerResult? result = await FilePicker.pickFiles(
-        type: FileType.any,
-      );
+      FilePickerResult? result = await FilePicker.pickFiles(type: FileType.any);
 
       if (result == null) return;
 
       final file = File(result.files.single.path!);
       final name = result.files.single.name;
-      final remotePath = "$currentPath/$name";
+      final remotePath =
+    "${currentPath.endsWith('/') ? currentPath : '$currentPath/'}$name";
 
       double progress = 0;
+      int lastUpdate = 0; 
       late StateSetter setDialogState;
 
       showDialog(
@@ -370,35 +375,43 @@ class _FileExplorerState extends State<FileExplorer> {
                   TextButton(
                     onPressed: () {
                       isFileUploadCancelled = true;
-                      Navigator.pop(context);
                     },
                     child: const Text("Cancel"),
                   ),
-                ]
+                ],
               );
             },
           );
         },
       );
+      
+      await widget.ssh.createDirIfNotExists(currentPath);
 
       await widget.ssh.uploadFile(
         localPath: file.path,
         remotePath: remotePath,
         onProgress: (p) {
-          progress = p;
-          setDialogState(() {});
+          final now = DateTime.now().millisecondsSinceEpoch;
+
+          if (now - lastUpdate > 100) {
+            lastUpdate = now;
+            progress = p;
+            setDialogState(() {});
+          }
         },
         isCancelled: () => isFileUploadCancelled,
       );
 
       if (isFileUploadCancelled) {
+        if (Navigator.canPop(context)) Navigator.pop(context);
+
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text("Upload cancelled")));
         return;
       }
 
-      Navigator.pop(context);
+      if (Navigator.canPop(context)) Navigator.pop(context);
 
       await loadFiles(currentPath);
 
@@ -406,7 +419,7 @@ class _FileExplorerState extends State<FileExplorer> {
         context,
       ).showSnackBar(const SnackBar(content: Text("File uploaded")));
     } catch (e) {
-      Navigator.pop(context);
+      if (Navigator.canPop(context)) Navigator.pop(context);
 
       ScaffoldMessenger.of(
         context,
@@ -416,8 +429,9 @@ class _FileExplorerState extends State<FileExplorer> {
 
   bool isUploadingFolderCancelled = false;
 
-  Future<void> uploadFolder() async {  
+  Future<void> uploadFolder() async {
     isUploadingFolderCancelled = false;
+
     try {
       String? dir = await FilePicker.getDirectoryPath();
 
@@ -427,6 +441,7 @@ class _FileExplorerState extends State<FileExplorer> {
       final remoteBasePath = "$currentPath/$folderName";
 
       double progress = 0;
+      int lastUpdate = 0;
       late StateSetter setDialogState;
 
       showDialog(
@@ -458,7 +473,6 @@ class _FileExplorerState extends State<FileExplorer> {
                   TextButton(
                     onPressed: () {
                       isUploadingFolderCancelled = true;
-                      Navigator.pop(context);
                     },
                     child: const Text("Cancel"),
                   ),
@@ -473,13 +487,27 @@ class _FileExplorerState extends State<FileExplorer> {
         localDirPath: dir,
         remoteDirPath: remoteBasePath,
         onProgress: (p) {
-          progress = p;
-          setDialogState(() {});
+          final now = DateTime.now().millisecondsSinceEpoch;
+
+          if (now - lastUpdate > 100) {
+            lastUpdate = now;
+            progress = p;
+            setDialogState(() {});
+          }
         },
         isCancelled: () => isUploadingFolderCancelled,
       );
 
-      Navigator.pop(context);
+      if (isUploadingFolderCancelled) {
+        if (Navigator.canPop(context)) Navigator.pop(context);
+
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Upload cancelled")));
+        return;
+      }
+
+      if (Navigator.canPop(context)) Navigator.pop(context);
 
       await loadFiles(currentPath);
 
@@ -487,7 +515,7 @@ class _FileExplorerState extends State<FileExplorer> {
         context,
       ).showSnackBar(const SnackBar(content: Text("Folder uploaded")));
     } catch (e) {
-      Navigator.pop(context);
+      if (Navigator.canPop(context)) Navigator.pop(context);
 
       ScaffoldMessenger.of(
         context,
@@ -522,7 +550,9 @@ class _FileExplorerState extends State<FileExplorer> {
               actions: [
                 TextButton(
                   onPressed: () async {
-                    Navigator.pop(context);
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    }
                     isDownloadCancelled = false;
                     await downloadFile(path);
                   },
@@ -530,7 +560,9 @@ class _FileExplorerState extends State<FileExplorer> {
                 ),
                 TextButton(
                   onPressed: () {
-                    Navigator.pop(context);
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    }
                     showFileInfo(file);
                   },
                   child: const Text("Info"),
@@ -586,7 +618,9 @@ class _FileExplorerState extends State<FileExplorer> {
                   style: TextStyle(color: Colors.white),
                 ),
                 onTap: () {
-                  Navigator.pop(context);
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
                   uploadFile();
                 },
               ),
@@ -604,7 +638,9 @@ class _FileExplorerState extends State<FileExplorer> {
                   style: TextStyle(color: Colors.white),
                 ),
                 onTap: () {
-                  Navigator.pop(context);
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
                   uploadFolder();
                 },
               ),

@@ -18,6 +18,10 @@ class SSHService {
     return String.fromCharCodes(result);
   }
 
+  Future<String> run(String s) async {
+    return await runCommand(s);
+  }
+
   Future<SSHSession> startShell() async {
     return await client!.shell(pty: SSHPtyConfig(width: 80, height: 24));
   }
@@ -32,10 +36,6 @@ class SSHService {
     }).toList();
   }
 
-  Future<String> run(String s) async {
-    return await runCommand(s);
-  }
-
   Future<void> downloadFile({
     required String remotePath,
     required String localPath,
@@ -45,8 +45,10 @@ class SSHService {
     final remoteFile = await sftp!.open(remotePath);
     final stat = await remoteFile.stat();
     final totalSize = stat.size ?? 0;
+
     final file = File(localPath);
     final sink = file.openWrite();
+
     int received = 0;
 
     await for (final chunk in remoteFile.read()) {
@@ -71,6 +73,14 @@ class SSHService {
     await remoteFile.close();
   }
 
+  Future<void> createDirIfNotExists(String path) async {
+    try {
+      await sftp!.stat(path);
+    } catch (_) {
+      await _createRemoteDirs(path);
+    }
+  }
+
   Future<void> uploadFile({
     required String localPath,
     required String remotePath,
@@ -89,99 +99,127 @@ class SSHService {
     );
 
     int sent = 0;
+    int lastUpdate = 0;
 
     try {
-      final stream = file.openRead().map((chunk) {
+      final stream = file.openRead();
+
+      await for (final chunk in stream) {
         if (isCancelled()) {
           throw Exception("Upload cancelled");
         }
 
-        sent += chunk.length;
+        final data = Uint8List.fromList(chunk);
 
-        if (totalSize != 0) {
-          onProgress(sent / totalSize);
+        await remoteFile.write(Stream.value(data), offset: sent);
+
+        sent += data.length;
+
+        final now = DateTime.now().millisecondsSinceEpoch;
+        if (now - lastUpdate > 100) {
+          lastUpdate = now;
+          if (totalSize != 0) {
+            onProgress(sent / totalSize);
+          }
         }
 
-        return Uint8List.fromList(chunk);
-      });
-
-      await remoteFile.write(stream);
+        await Future.delayed(const Duration(milliseconds: 1));
+      }
     } catch (e) {
-      // delete partial file if failed or cancelled
       try {
         await sftp!.remove(remotePath);
       } catch (_) {}
 
-      rethrow; // important for UI handling
+      rethrow;
     } finally {
       await remoteFile.close();
     }
   }
 
   Future<void> _createRemoteDirs(String path) async {
-  final parts = path.split("/");
-  String current = "";
+    final parts = path.split("/");
+    String current = "";
 
-  for (final part in parts) {
-    if (part.isEmpty) continue;
+    for (final part in parts) {
+      if (part.isEmpty) continue;
 
-    current += "/$part";
+      current += "/$part";
 
-    try {
-      await sftp!.mkdir(current);
-    } catch (_) {
+      try {
+        await sftp!.mkdir(current);
+      } catch (_) {
+        // ignore if exists
+      }
     }
   }
-}
 
   Future<void> uploadFolder({
-  required String localDirPath,
-  required String remoteDirPath,
-  required Function(double progress) onProgress,
-  required Function() isCancelled,
-}) async {
-  final directory = Directory(localDirPath);
+    required String localDirPath,
+    required String remoteDirPath,
+    required Function(double progress) onProgress,
+    required Function() isCancelled,
+  }) async {
+    final directory = Directory(localDirPath + (localDirPath.endsWith("/") ? "" : "/"));
+    final entities = await directory.list(recursive: true).toList();
 
-  if (!await directory.exists()) {
-    throw Exception("Local directory does not exist");
-  }
+    print("This is entities: ${entities}");
 
-  final files = directory
-      .listSync(recursive: true)
-      .whereType<File>()
-      .toList();
+    print("Checking local directory: $localDirPath");
 
-  if (files.isEmpty) return;
-
-  int totalFiles = files.length;
-  int completedFiles = 0;
-
-  for (final file in files) {
-    if (isCancelled()) {
-      throw Exception("Upload cancelled");
+    if (!await directory.exists()) {
+      throw Exception("Local directory does not exist");
     }
 
-    final relativePath = file.path
-        .replaceFirst(localDirPath, "")
-        .replaceAll("\\", "/");
+    await _createRemoteDirs(remoteDirPath);
 
-    final remotePath = "$remoteDirPath$relativePath";
+    print(remoteDirPath);
+    print(localDirPath);
 
-    final dirPath = remotePath.substring(0, remotePath.lastIndexOf("/"));
+    var files = entities.whereType<File>().toList();
+    print("This is files: ${files}");
 
-    await _createRemoteDirs(dirPath);
+    print("Total entities: ${entities}");
+    
+    print("Found ${files.length} files to upload");
+    print(files);
 
-    await uploadFile(
-      localPath: file.path,
-      remotePath: remotePath,
-      onProgress: (_) {},
-      isCancelled: isCancelled,
-    );
+    if (files.isEmpty) {
+      return; // folder exists already
+    }
 
-    completedFiles++;
-    onProgress(completedFiles / totalFiles);
+    int totalFiles = files.length;
+    int completedFiles = 0;
+
+    for (var file in files) {
+      print("-----------------------------------------------------------------This is loop");
+      if (isCancelled()) {
+        throw Exception("Upload cancelled");
+      }
+
+      final relativePath = file.path
+          .substring(localDirPath.length)
+          .replaceAll("\\", "/");
+
+      final remotePath = "$remoteDirPath$relativePath";
+
+      final dirPath = remotePath.substring(0, remotePath.lastIndexOf("/"));
+
+      await _createRemoteDirs(dirPath);
+
+      print("----------------------------------------------------------------------------This is file path to upload PLEASE CHECK THIS: ${file.path}");
+
+      await uploadFile(
+        localPath: file.path,
+        remotePath: remotePath,
+        onProgress: (_) {},
+        isCancelled: isCancelled,
+      );
+
+      completedFiles++;
+      onProgress(completedFiles / totalFiles);
+    }
   }
-}
+
   Future<void> disconnect() async {
     client?.close();
     client = null;
