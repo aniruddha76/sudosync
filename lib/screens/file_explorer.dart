@@ -26,6 +26,9 @@ class _FileExplorerState extends State<FileExplorer> {
 
   double downloadProgress = 0;
 
+  bool isUploading = false;
+  bool isDialogOpen = false;
+
   @override
   void initState() {
     super.initState();
@@ -330,20 +333,30 @@ class _FileExplorerState extends State<FileExplorer> {
   bool isFileUploadCancelled = false;
 
   Future<void> uploadFile() async {
+    if (isUploading) return; 
+    isUploading = true;
+
     isFileUploadCancelled = false;
+    isDialogOpen = true;
 
     try {
-      FilePickerResult? result = await FilePicker.pickFiles(type: FileType.any);
+      FilePickerResult? result = await FilePicker.pickFiles(
+        allowMultiple: true,
+        type: FileType.any,
+      );
 
-      if (result == null) return;
+      if (result == null || result.files.isEmpty) {
+        isUploading = false;
+        return;
+      }
 
-      final file = File(result.files.single.path!);
-      final name = result.files.single.name;
-      final remotePath =
-    "${currentPath.endsWith('/') ? currentPath : '$currentPath/'}$name";
+      final pickedFiles = result.files;
 
       double progress = 0;
-      int lastUpdate = 0; 
+      int lastUpdate = 0;
+      int totalFiles = pickedFiles.length;
+      int completedFiles = 0;
+
       late StateSetter setDialogState;
 
       showDialog(
@@ -369,6 +382,14 @@ class _FileExplorerState extends State<FileExplorer> {
                       "${(progress * 100).toStringAsFixed(0)}%",
                       style: const TextStyle(color: Colors.white),
                     ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "Uploading $completedFiles / $totalFiles files",
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
                 actions: [
@@ -384,142 +405,76 @@ class _FileExplorerState extends State<FileExplorer> {
           );
         },
       );
-      
+
       await widget.ssh.createDirIfNotExists(currentPath);
 
-      await widget.ssh.uploadFile(
-        localPath: file.path,
-        remotePath: remotePath,
-        onProgress: (p) {
-          final now = DateTime.now().millisecondsSinceEpoch;
+      for (var picked in pickedFiles) {
+        if (picked.path == null) continue;
 
-          if (now - lastUpdate > 100) {
-            lastUpdate = now;
-            progress = p;
-            setDialogState(() {});
-          }
-        },
-        isCancelled: () => isFileUploadCancelled,
-      );
+        if (isFileUploadCancelled) break;
+
+        final file = File(picked.path!);
+        final name = picked.name;
+
+        final remotePath =
+            "${currentPath.endsWith('/') ? currentPath : '$currentPath/'}$name";
+
+        await widget.ssh.uploadFile(
+          localPath: file.path,
+          remotePath: remotePath,
+          onProgress: (p) {
+            final now = DateTime.now().millisecondsSinceEpoch;
+
+            if (now - lastUpdate > 100) {
+              lastUpdate = now;
+
+              progress = (completedFiles + p) / totalFiles;
+
+              if (isDialogOpen) {
+                setDialogState(() {});
+              }
+            }
+          },
+          isCancelled: () => isFileUploadCancelled,
+        );
+
+        completedFiles++;
+
+        progress = completedFiles / totalFiles;
+
+        if (isDialogOpen) {
+          setDialogState(() {});
+        }
+      }
+
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      isDialogOpen = false;
 
       if (isFileUploadCancelled) {
-        if (Navigator.canPop(context)) Navigator.pop(context);
-
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text("Upload cancelled")));
         return;
       }
 
-      if (Navigator.canPop(context)) Navigator.pop(context);
-
       await loadFiles(currentPath);
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("File uploaded")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("$completedFiles file(s) uploaded")),
+      );
     } catch (e) {
-      if (Navigator.canPop(context)) Navigator.pop(context);
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      isDialogOpen = false;
 
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Upload failed: $e")));
-    }
-  }
-
-  bool isUploadingFolderCancelled = false;
-
-  Future<void> uploadFolder() async {
-    isUploadingFolderCancelled = false;
-
-    try {
-      String? dir = await FilePicker.getDirectoryPath();
-
-      if (dir == null) return;
-
-      final folderName = dir.split("/").last;
-      final remoteBasePath = "$currentPath/$folderName";
-
-      double progress = 0;
-      int lastUpdate = 0;
-      late StateSetter setDialogState;
-
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) {
-          return StatefulBuilder(
-            builder: (context, setState) {
-              setDialogState = setState;
-
-              return AlertDialog(
-                backgroundColor: const Color(0xFF1C1C1E),
-                title: const Text(
-                  "Uploading Folder...",
-                  style: TextStyle(color: Colors.white),
-                ),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    LinearProgressIndicator(value: progress),
-                    const SizedBox(height: 10),
-                    Text(
-                      "${(progress * 100).toStringAsFixed(0)}%",
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ],
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      isUploadingFolderCancelled = true;
-                    },
-                    child: const Text("Cancel"),
-                  ),
-                ],
-              );
-            },
-          );
-        },
-      );
-
-      await widget.ssh.uploadFolder(
-        localDirPath: dir,
-        remoteDirPath: remoteBasePath,
-        onProgress: (p) {
-          final now = DateTime.now().millisecondsSinceEpoch;
-
-          if (now - lastUpdate > 100) {
-            lastUpdate = now;
-            progress = p;
-            setDialogState(() {});
-          }
-        },
-        isCancelled: () => isUploadingFolderCancelled,
-      );
-
-      if (isUploadingFolderCancelled) {
-        if (Navigator.canPop(context)) Navigator.pop(context);
-
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Upload cancelled")));
-        return;
-      }
-
-      if (Navigator.canPop(context)) Navigator.pop(context);
-
-      await loadFiles(currentPath);
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Folder uploaded")));
-    } catch (e) {
-      if (Navigator.canPop(context)) Navigator.pop(context);
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Folder upload failed: $e")));
+    } finally {
+      isUploading = false;
     }
   }
 
@@ -601,7 +556,7 @@ class _FileExplorerState extends State<FileExplorer> {
       ),
       builder: (context) {
         return SizedBox(
-          height: 160,
+          height: 120,
           child: Column(
             children: [
               ListTile(
@@ -622,26 +577,6 @@ class _FileExplorerState extends State<FileExplorer> {
                     Navigator.pop(context);
                   }
                   uploadFile();
-                },
-              ),
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 8,
-                ),
-                leading: const Icon(
-                  Icons.create_new_folder,
-                  color: Color(0xFFB6FF00),
-                ),
-                title: const Text(
-                  "Upload Folder",
-                  style: TextStyle(color: Colors.white),
-                ),
-                onTap: () {
-                  if (Navigator.canPop(context)) {
-                    Navigator.pop(context);
-                  }
-                  uploadFolder();
                 },
               ),
             ],

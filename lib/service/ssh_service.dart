@@ -116,14 +116,14 @@ class SSHService {
         sent += data.length;
 
         final now = DateTime.now().millisecondsSinceEpoch;
+
         if (now - lastUpdate > 100) {
           lastUpdate = now;
+
           if (totalSize != 0) {
             onProgress(sent / totalSize);
           }
         }
-
-        await Future.delayed(const Duration(milliseconds: 1));
       }
     } catch (e) {
       try {
@@ -150,73 +150,6 @@ class SSHService {
       } catch (_) {
         // ignore if exists
       }
-    }
-  }
-
-  Future<void> uploadFolder({
-    required String localDirPath,
-    required String remoteDirPath,
-    required Function(double progress) onProgress,
-    required Function() isCancelled,
-  }) async {
-    final directory = Directory(localDirPath + (localDirPath.endsWith("/") ? "" : "/"));
-    final entities = await directory.list(recursive: true).toList();
-
-    print("This is entities: ${entities}");
-
-    print("Checking local directory: $localDirPath");
-
-    if (!await directory.exists()) {
-      throw Exception("Local directory does not exist");
-    }
-
-    await _createRemoteDirs(remoteDirPath);
-
-    print(remoteDirPath);
-    print(localDirPath);
-
-    var files = entities.whereType<File>().toList();
-    print("This is files: ${files}");
-
-    print("Total entities: ${entities}");
-    
-    print("Found ${files.length} files to upload");
-    print(files);
-
-    if (files.isEmpty) {
-      return; // folder exists already
-    }
-
-    int totalFiles = files.length;
-    int completedFiles = 0;
-
-    for (var file in files) {
-      print("-----------------------------------------------------------------This is loop");
-      if (isCancelled()) {
-        throw Exception("Upload cancelled");
-      }
-
-      final relativePath = file.path
-          .substring(localDirPath.length)
-          .replaceAll("\\", "/");
-
-      final remotePath = "$remoteDirPath$relativePath";
-
-      final dirPath = remotePath.substring(0, remotePath.lastIndexOf("/"));
-
-      await _createRemoteDirs(dirPath);
-
-      print("----------------------------------------------------------------------------This is file path to upload PLEASE CHECK THIS: ${file.path}");
-
-      await uploadFile(
-        localPath: file.path,
-        remotePath: remotePath,
-        onProgress: (_) {},
-        isCancelled: isCancelled,
-      );
-
-      completedFiles++;
-      onProgress(completedFiles / totalFiles);
     }
   }
 
