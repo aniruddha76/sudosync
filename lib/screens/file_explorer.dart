@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:dartssh2/dartssh2.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
@@ -36,18 +35,22 @@ class _FileExplorerState extends State<FileExplorer> {
   }
 
   Future<void> loadFiles(String path) async {
-    final list = await widget.ssh.listDir(path);
+    try {
+      final list = await widget.ssh.listDir(path);
 
-    list.sort((a, b) {
-      if (isDirectory(a) && !isDirectory(b)) return -1;
-      if (!isDirectory(a) && isDirectory(b)) return 1;
-      return a.filename.compareTo(b.filename);
-    });
+      list.sort((a, b) {
+        if (isDirectory(a) && !isDirectory(b)) return -1;
+        if (!isDirectory(a) && isDirectory(b)) return 1;
+        return a.filename.compareTo(b.filename);
+      });
 
-    setState(() {
-      currentPath = path;
-      files = list;
-    });
+      setState(() {
+        currentPath = path;
+        files = list;
+      });
+    } catch (e) {
+      await widget.ssh.reconnect();
+    }
   }
 
   bool isDirectory(SftpName file) {
@@ -72,11 +75,9 @@ class _FileExplorerState extends State<FileExplorer> {
 
   IconData getIcon(String name) {
     final lower = name.toLowerCase();
-
     if (lower.endsWith(".pdf") || lower.endsWith(".txt")) {
       return Icons.description;
     }
-
     return Icons.insert_drive_file;
   }
 
@@ -86,7 +87,7 @@ class _FileExplorerState extends State<FileExplorer> {
       final bytes = await file.readBytes();
       await file.close();
       return bytes;
-    } catch (e) {
+    } catch (_) {
       return null;
     }
   }
@@ -111,7 +112,7 @@ class _FileExplorerState extends State<FileExplorer> {
       );
 
       return thumb;
-    } catch (e) {
+    } catch (_) {
       return null;
     }
   }
@@ -202,9 +203,7 @@ class _FileExplorerState extends State<FileExplorer> {
           backgroundColor: const Color(0xFF1C1C1E),
           title: const Text("File Info", style: TextStyle(color: Colors.white)),
           content: Text(
-            "Name: ${file.filename}\n\n"
-            "Type: ${isDirectory(file) ? "Folder" : "File"}\n\n"
-            "Details:\n${file.longname}",
+            "Name: ${file.filename}\n\nType: ${isDirectory(file) ? "Folder" : "File"}\n\nDetails:\n${file.longname}",
             style: const TextStyle(color: Colors.white70),
           ),
           actions: [
@@ -218,15 +217,10 @@ class _FileExplorerState extends State<FileExplorer> {
     );
   }
 
-  Future<void> requestPermission() async {
-    await Permission.manageExternalStorage.request();
-  }
-
   bool isDownloadCancelled = false;
 
   Future<void> downloadFile(String remotePath) async {
     double progress = 0;
-
     late StateSetter setDialogState;
 
     showDialog(
@@ -258,9 +252,7 @@ class _FileExplorerState extends State<FileExplorer> {
                 TextButton(
                   onPressed: () {
                     isDownloadCancelled = true;
-                    if (Navigator.canPop(context)) {
-                      Navigator.pop(context);
-                    }
+                    if (Navigator.canPop(context)) Navigator.pop(context);
                   },
                   child: const Text("Cancel"),
                 ),
@@ -274,13 +266,9 @@ class _FileExplorerState extends State<FileExplorer> {
     try {
       final name = remotePath.split("/").last;
 
-      Directory downloadsDir;
-
-      if (Platform.isAndroid) {
-        downloadsDir = Directory("/storage/emulated/0/Download");
-      } else {
-        downloadsDir = await getApplicationDocumentsDirectory();
-      }
+      Directory downloadsDir = Platform.isAndroid
+          ? Directory("/storage/emulated/0/Download")
+          : await getApplicationDocumentsDirectory();
 
       if (!await downloadsDir.exists()) {
         await downloadsDir.create(recursive: true);
@@ -289,7 +277,6 @@ class _FileExplorerState extends State<FileExplorer> {
       String filePath = "${downloadsDir.path}/$name";
       File localFile = File(filePath);
 
-      // Handle duplicate
       if (await localFile.exists()) {
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         filePath = "${downloadsDir.path}/${timestamp}_$name";
@@ -305,6 +292,8 @@ class _FileExplorerState extends State<FileExplorer> {
         isCancelled: () => isDownloadCancelled,
       );
 
+      if (Navigator.canPop(context)) Navigator.pop(context);
+
       if (isDownloadCancelled) {
         ScaffoldMessenger.of(
           context,
@@ -312,18 +301,11 @@ class _FileExplorerState extends State<FileExplorer> {
         return;
       }
 
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Downloaded: $filePath")));
     } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-
+      if (Navigator.canPop(context)) Navigator.pop(context);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Download failed: $e")));
@@ -333,11 +315,9 @@ class _FileExplorerState extends State<FileExplorer> {
   bool isFileUploadCancelled = false;
 
   Future<void> uploadFile() async {
-    if (isUploading) return; 
-    isUploading = true;
+    if (isUploading) return;
 
     isFileUploadCancelled = false;
-    isDialogOpen = true;
 
     try {
       FilePickerResult? result = await FilePicker.pickFiles(
@@ -345,10 +325,13 @@ class _FileExplorerState extends State<FileExplorer> {
         type: FileType.any,
       );
 
-      if (result == null || result.files.isEmpty) {
-        isUploading = false;
-        return;
-      }
+      if (!mounted) return;
+      if (result == null || result.files.isEmpty) return;
+
+      await widget.ssh.reconnect();
+
+      isUploading = true;
+      isDialogOpen = true;
 
       final pickedFiles = result.files;
 
@@ -382,20 +365,14 @@ class _FileExplorerState extends State<FileExplorer> {
                       "${(progress * 100).toStringAsFixed(0)}%",
                       style: const TextStyle(color: Colors.white),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      "Uploading $completedFiles / $totalFiles files",
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
-                    ),
                   ],
                 ),
                 actions: [
                   TextButton(
                     onPressed: () {
                       isFileUploadCancelled = true;
+                      if (Navigator.canPop(context)) Navigator.pop(context);
+                      isDialogOpen = false;
                     },
                     child: const Text("Cancel"),
                   ),
@@ -409,53 +386,39 @@ class _FileExplorerState extends State<FileExplorer> {
       await widget.ssh.createDirIfNotExists(currentPath);
 
       for (var picked in pickedFiles) {
-        if (picked.path == null) continue;
-
-        if (isFileUploadCancelled) break;
+        if (picked.path == null || isFileUploadCancelled) break;
 
         final file = File(picked.path!);
-        final name = picked.name;
-
-        final remotePath =
-            "${currentPath.endsWith('/') ? currentPath : '$currentPath/'}$name";
+        final remotePath = "$currentPath/${picked.name}";
 
         await widget.ssh.uploadFile(
           localPath: file.path,
           remotePath: remotePath,
           onProgress: (p) {
             final now = DateTime.now().millisecondsSinceEpoch;
-
             if (now - lastUpdate > 100) {
               lastUpdate = now;
-
               progress = (completedFiles + p) / totalFiles;
-
-              if (isDialogOpen) {
-                setDialogState(() {});
-              }
+              if (isDialogOpen && mounted) setDialogState(() {});
             }
           },
           isCancelled: () => isFileUploadCancelled,
         );
 
         completedFiles++;
-
         progress = completedFiles / totalFiles;
 
-        if (isDialogOpen) {
-          setDialogState(() {});
-        }
+        if (isDialogOpen && mounted) setDialogState(() {});
       }
 
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
+      if (Navigator.canPop(context)) Navigator.pop(context);
       isDialogOpen = false;
 
       if (isFileUploadCancelled) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text("Upload cancelled")));
+        isUploading = false;
         return;
       }
 
@@ -465,11 +428,8 @@ class _FileExplorerState extends State<FileExplorer> {
         SnackBar(content: Text("$completedFiles file(s) uploaded")),
       );
     } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
+      if (Navigator.canPop(context)) Navigator.pop(context);
       isDialogOpen = false;
-
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Upload failed: $e")));
@@ -488,7 +448,6 @@ class _FileExplorerState extends State<FileExplorer> {
           return;
         }
 
-        // if file then show popup dialog
         showDialog(
           context: context,
           builder: (context) {
@@ -505,9 +464,7 @@ class _FileExplorerState extends State<FileExplorer> {
               actions: [
                 TextButton(
                   onPressed: () async {
-                    if (Navigator.canPop(context)) {
-                      Navigator.pop(context);
-                    }
+                    if (Navigator.canPop(context)) Navigator.pop(context);
                     isDownloadCancelled = false;
                     await downloadFile(path);
                   },
@@ -515,9 +472,7 @@ class _FileExplorerState extends State<FileExplorer> {
                 ),
                 TextButton(
                   onPressed: () {
-                    if (Navigator.canPop(context)) {
-                      Navigator.pop(context);
-                    }
+                    if (Navigator.canPop(context)) Navigator.pop(context);
                     showFileInfo(file);
                   },
                   child: const Text("Info"),
@@ -560,10 +515,7 @@ class _FileExplorerState extends State<FileExplorer> {
           child: Column(
             children: [
               ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 8,
-                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 leading: const Icon(
                   Icons.upload_file,
                   color: Color(0xFFB6FF00),
@@ -572,10 +524,10 @@ class _FileExplorerState extends State<FileExplorer> {
                   "Upload File",
                   style: TextStyle(color: Colors.white),
                 ),
-                onTap: () {
-                  if (Navigator.canPop(context)) {
-                    Navigator.pop(context);
-                  }
+                onTap: () async {
+                  if (Navigator.canPop(context)) Navigator.pop(context);
+                  await Future.delayed(const Duration(milliseconds: 300));
+                  if (!mounted) return;
                   uploadFile();
                 },
               ),
@@ -589,8 +541,10 @@ class _FileExplorerState extends State<FileExplorer> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: currentPath == "/home",
+      canPop: currentPath == "/home" && !isUploading,
       onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        if (isUploading) return;
         if (currentPath != "/home") {
           final parent = currentPath.substring(0, currentPath.lastIndexOf("/"));
           await loadFiles(parent.isEmpty ? "/" : parent);
@@ -622,16 +576,12 @@ class _FileExplorerState extends State<FileExplorer> {
           children: [
             if (downloadProgress > 0 && downloadProgress < 1)
               LinearProgressIndicator(value: downloadProgress),
-
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: ListView.builder(
-                  itemCount: files.length,
-                  itemBuilder: (context, index) {
-                    return deviceCard(file: files[index]);
-                  },
-                ),
+              child: ListView.builder(
+                itemCount: files.length,
+                itemBuilder: (context, index) {
+                  return deviceCard(file: files[index]);
+                },
               ),
             ),
           ],
