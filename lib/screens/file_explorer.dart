@@ -10,6 +10,8 @@ import 'package:file_picker/file_picker.dart';
 import '../service/ssh_service.dart';
 import 'image_viewer.dart';
 
+import './app_dialog.dart';
+
 class FileExplorer extends StatefulWidget {
   final SSHService ssh;
 
@@ -121,7 +123,7 @@ class _FileExplorerState extends State<FileExplorer> {
     final path = "$currentPath/${file.filename}";
 
     if (isDirectory(file)) {
-      return const Icon(Icons.folder, size: 35, color: Color(0xFFB6FF00));
+      return const Icon(Icons.folder, size: 40, color: Color(0xFFB6FF00));
     }
 
     if (isImage(file.filename)) {
@@ -195,27 +197,27 @@ class _FileExplorerState extends State<FileExplorer> {
     }
   }
 
-  void showFileInfo(SftpName file) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF1C1C1E),
-          title: const Text("File Info", style: TextStyle(color: Colors.white)),
-          content: Text(
-            "Name: ${file.filename}\n\nType: ${isDirectory(file) ? "Folder" : "File"}\n\nDetails:\n${file.longname}",
-            style: const TextStyle(color: Colors.white70),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Close"),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  // void showFileInfo(SftpName file) {
+  //   showDialog(
+  //     context: context,
+  //     builder: (context) {
+  //       return AlertDialog(
+  //         backgroundColor: const Color(0xFF1C1C1E),
+  //         title: const Text("File Info", style: TextStyle(color: Colors.white)),
+  //         content: Text(
+  //           "Name: ${file.filename}\n\nType: ${isDirectory(file) ? "Folder" : "File"}\n\nDetails:\n${file.longname}",
+  //           style: const TextStyle(color: Colors.white70),
+  //         ),
+  //         actions: [
+  //           TextButton(
+  //             onPressed: () => Navigator.pop(context),
+  //             child: const Text("Close"),
+  //           ),
+  //         ],
+  //       );
+  //     },
+  //   );
+  // }
 
   bool isDownloadCancelled = false;
 
@@ -439,7 +441,30 @@ class _FileExplorerState extends State<FileExplorer> {
   }
 
   Widget deviceCard({required SftpName file}) {
+    var fileType = "";
+        if (file.attr.size! < 1024) {
+          fileType = "Size: ${file.attr.size!} Bytes";
+        } else if (file.attr.size! < 1024 * 1024) {
+          fileType = "Size: ${(file.attr.size! / 1024).toStringAsFixed(2)} KB";
+        } else if (file.attr.size! < 1024 * 1024 * 1024) {
+          fileType = "Size: ${(file.attr.size! / (1024 * 1024)).toStringAsFixed(2)} MB";
+        } else {
+          fileType = "Size: ${(file.attr.size! / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB";
+        }
+
     return GestureDetector(
+      onLongPress: () => AppDialog.show(
+        context: context,
+        title: file.filename,
+        message: fileType,
+        type: DialogType.info,
+        actions: [
+          AppDialog.action("Close", () {
+            Navigator.pop(context);
+          }),
+        ],
+      ),
+
       onTap: () async {
         final path = "$currentPath/${file.filename}";
 
@@ -448,55 +473,41 @@ class _FileExplorerState extends State<FileExplorer> {
           return;
         }
 
-        showDialog(
+        AppDialog.show(
           context: context,
-          builder: (context) {
-            return AlertDialog(
-              backgroundColor: const Color(0xFF1C1C1E),
-              title: Text(
-                file.filename,
-                style: const TextStyle(color: Colors.white),
-              ),
-              content: const Text(
-                "Choose an action",
-                style: TextStyle(color: Colors.white70),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () async {
-                    if (Navigator.canPop(context)) Navigator.pop(context);
-                    isDownloadCancelled = false;
-                    await downloadFile(path);
-                  },
-                  child: const Text("Download"),
-                ),
-                TextButton(
-                  onPressed: () {
-                    if (Navigator.canPop(context)) Navigator.pop(context);
-                    showFileInfo(file);
-                  },
-                  child: const Text("Info"),
-                ),
-              ],
-            );
-          },
+          title: file.filename,
+          message: fileType,
+          type: DialogType.info,
+          actions: [
+            AppDialog.action("Download", () {
+              Navigator.pop(context);
+              downloadFile(path);
+            }),
+            AppDialog.action("Details", () {
+              Navigator.pop(context);
+              AppDialog.show(
+                context: context,
+                title: "File Info",
+                message:
+                    "Name: ${file.filename}\n\nType: ${isDirectory(file) ? "Folder" : "File"}\n\nDetails:\n${file.longname}",
+                type: DialogType.info,
+                actions: [
+                  AppDialog.action("Close", () => Navigator.pop(context)),
+                ],
+              );
+            }),
+          ],
         );
       },
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          children: [
-            leadingWidget(file),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                file.filename,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 18, color: Colors.white),
-              ),
-            ),
-          ],
+      child: ListTile(
+        leading: leadingWidget(file),
+        title: Text(
+          file.filename, 
+          style: const TextStyle(color: Colors.white, fontSize: 18,),
+          ),
+        subtitle: Text(
+          "${file.attr.size} bytes",
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
         ),
       ),
     );
