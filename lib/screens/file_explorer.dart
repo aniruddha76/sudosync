@@ -197,28 +197,6 @@ class _FileExplorerState extends State<FileExplorer> {
     }
   }
 
-  // void showFileInfo(SftpName file) {
-  //   showDialog(
-  //     context: context,
-  //     builder: (context) {
-  //       return AlertDialog(
-  //         backgroundColor: const Color(0xFF1C1C1E),
-  //         title: const Text("File Info", style: TextStyle(color: Colors.white)),
-  //         content: Text(
-  //           "Name: ${file.filename}\n\nType: ${isDirectory(file) ? "Folder" : "File"}\n\nDetails:\n${file.longname}",
-  //           style: const TextStyle(color: Colors.white70),
-  //         ),
-  //         actions: [
-  //           TextButton(
-  //             onPressed: () => Navigator.pop(context),
-  //             child: const Text("Close"),
-  //           ),
-  //         ],
-  //       );
-  //     },
-  //   );
-  // }
-
   bool isDownloadCancelled = false;
 
   Future<void> downloadFile(String remotePath) async {

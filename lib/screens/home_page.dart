@@ -158,7 +158,6 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          /// BIG VALUE (Hostname like temperature)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

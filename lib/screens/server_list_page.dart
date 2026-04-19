@@ -7,6 +7,8 @@ import '../service/ssh_service.dart';
 import 'home_page.dart';
 import 'login_page.dart';
 
+import 'app_dialog.dart';
+
 class ServerListPage extends StatefulWidget {
   const ServerListPage({super.key});
 
@@ -18,6 +20,7 @@ class _ServerListPageState extends State<ServerListPage> {
   final storage = ServerStorage();
   List<Server> servers = [];
   bool loading = true;
+  bool connecting = false;
 
   @override
   void initState() {
@@ -37,14 +40,31 @@ class _ServerListPageState extends State<ServerListPage> {
   void connect(Server server) async {
     final ssh = SSHService();
 
-    await ssh.connect(server.host, server.username, server.password);
+    try {
+      await ssh.connect(server.host, server.username, server.password);
+      if (!mounted) return;
 
-    if (!mounted) return;
+      Navigator.pop(context); // Close the "Connecting..." dialog
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => HomePage(ssh: ssh)),
-    );
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => HomePage(ssh: ssh)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      Navigator.pop(context);
+
+      AppDialog.show(
+        context: context,
+        title: "Connection Failed",
+        message: e.toString(),
+      );
+    }
+
+    if (mounted) {
+      setState(() => connecting = false);
+    }
   }
 
   void deleteServer(Server server) async {
@@ -103,8 +123,20 @@ class _ServerListPageState extends State<ServerListPage> {
           IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.red),
             onPressed: () async {
-              await storage.deleteServer(server.id);
-              loadServers();
+              AppDialog.show(
+                context: context,
+                title: "Delete Server",
+                message: "Are you sure you want to delete below server?\nIP: ${server.host}\nUser: ${server.username}",
+                type: DialogType.warning,
+                actions: [
+                  AppDialog.action("Cancel", () => Navigator.pop(context)),
+                  AppDialog.action("Delete", () {
+                    storage.deleteServer(server.id);
+                    Navigator.pop(context);
+                    loadServers();
+                  }),
+                ],
+              );
             },
           ),
         ],
@@ -130,24 +162,23 @@ class _ServerListPageState extends State<ServerListPage> {
 
           child: Column(
             children: [
-
               Text(
-                  "SudoSync",
-                  style: GoogleFonts.lobsterTwo(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 50,
-                    color: Colors.white,
-                  ),
+                "SudoSync",
+                style: GoogleFonts.lobsterTwo(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 50,
+                  color: Colors.white,
                 ),
+              ),
 
               Text(
                 textAlign: TextAlign.center,
                 "SudoSync is currently in early development. Please use with caution.",
                 style: TextStyle(
-                  color: Colors.white70, 
-                  fontSize: 10, 
+                  color: Colors.white70,
+                  fontSize: 10,
                   fontStyle: FontStyle.italic,
-                  ),
+                ),
               ),
 
               SizedBox(height: 16),
@@ -157,7 +188,6 @@ class _ServerListPageState extends State<ServerListPage> {
                   Text(
                     "My Servers",
                     style: TextStyle(color: Colors.white70, fontSize: 16),
-                    
                   ),
                 ],
               ),
@@ -176,7 +206,25 @@ class _ServerListPageState extends State<ServerListPage> {
                         itemCount: servers.length,
                         itemBuilder: (context, index) {
                           return GestureDetector(
-                            onTap: () => connect(servers[index]),
+                            onTap: connecting
+                                ? null
+                                : () {
+                                    setState(() => connecting = true);
+
+                                    AppDialog.show(
+                                      context: context,
+                                      title: "Connecting to ${servers[index].host} as ${servers[index].username}",
+                                      message: "Please wait while we establish a connection...",
+                                      actions: [
+                                        AppDialog.action("Cancel", () {
+                                          setState(() => connecting = false);
+                                          Navigator.pop(context);
+                                        }),
+                                      ],
+                                    );
+
+                                    connect(servers[index]);
+                                  },
                             child: serverCard(servers[index]),
                           );
                         },
@@ -201,8 +249,7 @@ class _ServerListPageState extends State<ServerListPage> {
 
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFB6FF00),
-                    shape: CircleBorder(
-                    ),
+                    shape: CircleBorder(),
                   ),
 
                   child: Icon(Icons.add, color: Colors.black, size: 35),

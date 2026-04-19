@@ -41,7 +41,7 @@ class _LoginPageState extends State<LoginPage> {
       await storage.saveServer(
         Server(
           id: generateId(),
-          name: ip.text, // you can later add a name field
+          name: ip.text, 
           host: ip.text,
           username: user.text,
           password: pass.text,
