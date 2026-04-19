@@ -13,9 +13,9 @@ class AppDialog {
   }) {
     return showGeneralDialog(
       context: context,
-      barrierDismissible: barrierDismissible,
+      barrierDismissible: false,
       barrierLabel: "",
-      barrierColor: Colors.black.withOpacity(0.6),
+      barrierColor: Colors.black54,
       transitionDuration: const Duration(milliseconds: 250),
       pageBuilder: (_, __, ___) {
         return _DialogUI(

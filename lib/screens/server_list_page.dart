@@ -209,18 +209,15 @@ class _ServerListPageState extends State<ServerListPage> {
                             onTap: connecting
                                 ? null
                                 : () {
+                                    
+                                    if(connecting) return;
+                                    
                                     setState(() => connecting = true);
 
                                     AppDialog.show(
                                       context: context,
                                       title: "Connecting to ${servers[index].host} as ${servers[index].username}",
                                       message: "Please wait while we establish a connection...",
-                                      actions: [
-                                        AppDialog.action("Cancel", () {
-                                          setState(() => connecting = false);
-                                          Navigator.pop(context);
-                                        }),
-                                      ],
                                     );
 
                                     connect(servers[index]);
