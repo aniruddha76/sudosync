@@ -215,6 +215,7 @@ class _ServerListPageState extends State<ServerListPage> {
                                     setState(() => connecting = true);
 
                                     AppDialog.show(
+                                      barrierDismissible: false,
                                       context: context,
                                       title: "Connecting to ${servers[index].host} as ${servers[index].username}",
                                       message: "Please wait while we establish a connection...",

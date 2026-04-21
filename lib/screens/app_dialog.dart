@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 enum DialogType { success, error, warning, info }
@@ -13,10 +14,10 @@ class AppDialog {
   }) {
     return showGeneralDialog(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: barrierDismissible, // ✅ FIXED
       barrierLabel: "",
-      barrierColor: Colors.black54,
-      transitionDuration: const Duration(milliseconds: 250),
+      barrierColor: Colors.black.withOpacity(0.4),
+      transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (_, __, ___) {
         return _DialogUI(
           title: title,
@@ -26,27 +27,47 @@ class AppDialog {
         );
       },
       transitionBuilder: (_, anim, __, child) {
-        final scale = Tween(begin: 0.9, end: 1.0).animate(
-          CurvedAnimation(parent: anim, curve: Curves.easeOut),
+        final curved = CurvedAnimation(
+          parent: anim,
+          curve: Curves.easeOutCubic,
         );
 
         return FadeTransition(
-          opacity: anim,
-          child: ScaleTransition(scale: scale, child: child),
+          opacity: curved,
+          child: SlideTransition(
+            position: Tween(
+              begin: const Offset(0, 0.1),
+              end: Offset.zero,
+            ).animate(curved),
+            child: ScaleTransition(
+              scale: Tween(begin: 0.95, end: 1.0).animate(curved),
+              child: child,
+            ),
+          ),
         );
       },
     );
   }
 
-  static Widget action(String text, VoidCallback onTap,
-      {Color color = const Color(0xFFB6FF00)}) {
-    return TextButton(
-      onPressed: onTap,
-      child: Text(
-        text,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w500,
+  static Widget action(
+    String text,
+    VoidCallback onTap, {
+    Color? color,
+    bool isPrimary = false,
+  }) {
+    return Expanded(
+      child: TextButton(
+        onPressed: onTap,
+        style: TextButton.styleFrom(
+          foregroundColor: color ?? Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+        ),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontWeight: isPrimary ? FontWeight.bold : FontWeight.w500,
+          ),
         ),
       ),
     );
@@ -69,24 +90,24 @@ class _DialogUI extends StatelessWidget {
   IconData _getIcon() {
     switch (type) {
       case DialogType.success:
-        return Icons.check_circle;
+        return Icons.check_circle_rounded;
       case DialogType.error:
-        return Icons.error;
+        return Icons.cancel_rounded;
       case DialogType.warning:
-        return Icons.warning;
+        return Icons.warning_amber_rounded;
       case DialogType.info:
-        return Icons.info;
+        return Icons.info_rounded;
     }
   }
 
   Color _getColor() {
     switch (type) {
       case DialogType.success:
-        return Colors.green;
+        return Colors.greenAccent;
       case DialogType.error:
-        return Colors.red;
+        return Colors.redAccent;
       case DialogType.warning:
-        return Colors.orange;
+        return Colors.orangeAccent;
       case DialogType.info:
         return const Color(0xFFB6FF00);
     }
@@ -96,49 +117,97 @@ class _DialogUI extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = _getColor();
 
-    return Center(
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 24),
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1C1C1E),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(_getIcon(), color: color, size: 40),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+    return SafeArea(
+      child: Center(
+        child: Material(
+          color: Colors.transparent,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Container(
+                width: 320,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 22,
                 ),
-                // textAlign: TextAlign.center,
-              ),
-              if (message != null) ...[
-                const SizedBox(height: 10),
-                Text(
-                  message!,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1C1C1E).withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.05),
                   ),
-                  // textAlign: TextAlign.center,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.5),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
-              ],
-              if (actions != null) ...[
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: actions!,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    /// ICON
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _getIcon(),
+                        color: color,
+                        size: 32,
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    /// TITLE
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+
+                    if (message != null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        message!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+
+                    if (actions != null) ...[
+                      const SizedBox(height: 20),
+
+                      /// Divider
+                      Container(
+                        height: 1,
+                        color: Colors.white.withOpacity(0.05),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      /// ACTIONS
+                      Row(
+                        children: actions!,
+                      ),
+                    ],
+                  ],
                 ),
-              ],
-            ],
+              ),
+            ),
           ),
         ),
       ),
