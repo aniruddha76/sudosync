@@ -175,7 +175,22 @@ class _ProfilePageState extends State<ProfilePage> {
             infoTile("Machine ID", info["Machine ID"] ?? "Loading..."),
             infoTile("Boot ID", info["Boot ID"] ?? "Loading..."),
             infoTile("Chassis", info["Chassis"] ?? "Loading..."),
-
+            
+            //get sudosync version dynamically
+            Center(
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  Text(
+                    "SudoSync v1.2.4",
+                    style: GoogleFonts.poppins(
+                      color: Colors.grey,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

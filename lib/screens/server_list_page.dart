@@ -56,6 +56,7 @@ class _ServerListPageState extends State<ServerListPage> {
       Navigator.pop(context);
 
       AppDialog.show(
+        type: DialogType.error,
         context: context,
         title: "Connection Failed",
         message: e.toString(),

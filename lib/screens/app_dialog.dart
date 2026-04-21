@@ -103,11 +103,11 @@ class _DialogUI extends StatelessWidget {
   Color _getColor() {
     switch (type) {
       case DialogType.success:
-        return Colors.greenAccent;
+        return Colors.green;
       case DialogType.error:
-        return Colors.redAccent;
+        return Colors.red;
       case DialogType.warning:
-        return Colors.orangeAccent;
+        return Colors.orange;
       case DialogType.info:
         return const Color(0xFFB6FF00);
     }
