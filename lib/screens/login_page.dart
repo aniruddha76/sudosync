@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:sudosync/screens/app_dialog.dart';
 import '../service/ssh_service.dart';
 import '../service/server_storage.dart';
 import '../models/server.dart';
@@ -55,19 +56,18 @@ class _LoginPageState extends State<LoginPage> {
         MaterialPageRoute(builder: (_) => HomePage(ssh: ssh)),
       );
     } catch (e) {
-      showDialog(
+      AppDialog.show(
+        type: DialogType.error,
         context: context,
-        builder: (_) => AlertDialog(
-          title: const Text("Connection Failed"),
-          content: Text(e.toString()),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("OK"),
-            ),
-          ],
-        ),
-      );
+        title: "Connection Failed",
+        message: e.toString(),
+        actions: [
+          AppDialog.action(
+            "OK",
+            () => Navigator.pop(context),
+          ),
+        ],
+      );  
     } finally {
       setState(() {
         isLoading = false;
