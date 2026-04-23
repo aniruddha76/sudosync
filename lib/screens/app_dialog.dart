@@ -14,7 +14,7 @@ class AppDialog {
   }) {
     return showGeneralDialog(
       context: context,
-      barrierDismissible: barrierDismissible, // ✅ FIXED
+      barrierDismissible: barrierDismissible, 
       barrierLabel: "",
       barrierColor: Colors.black.withOpacity(0.4),
       transitionDuration: const Duration(milliseconds: 300),
