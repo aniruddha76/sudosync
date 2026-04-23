@@ -14,7 +14,7 @@ class AppDialog {
   }) {
     return showGeneralDialog(
       context: context,
-      barrierDismissible: barrierDismissible, 
+      barrierDismissible: barrierDismissible, // This disables the multiple taps issue
       barrierLabel: "",
       barrierColor: Colors.black.withOpacity(0.4),
       transitionDuration: const Duration(milliseconds: 300),
