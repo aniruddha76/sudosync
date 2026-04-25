@@ -137,16 +137,17 @@ class _ServicesPageState extends State<ServicesPage> {
                 Padding(
                   padding: const EdgeInsets.all(10),
                   child: TextField(
+                    textAlignVertical: TextAlignVertical.center,
                     style: const TextStyle(color: Colors.white),
                     onChanged: filterServices,
                     decoration: InputDecoration(
-                      hintText: "Search services...",
+                      hintText: "Search",
                       hintStyle: const TextStyle(color: Colors.grey),
-                      prefixIcon: const Icon(Icons.search, color: Color.fromARGB(255, 182, 255, 0)),
+                      prefixIcon: const Icon(Icons.search_rounded, color: Color.fromARGB(255, 182, 255, 0)),
                       filled: true,
                       fillColor: const Color(0xFF1C1C1E),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(50),
                         borderSide: BorderSide.none,
                       ),
                     ),

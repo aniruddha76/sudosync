@@ -31,12 +31,7 @@ class _ImageViewerState extends State<ImageViewer> {
 bool isDownloadCancelled = false;
 
 Future<void> downloadImage() async {
-  Directory tempDir;
-    if (Platform.isAndroid) {
-      tempDir = Directory("/storage/emulated/0/Download");
-    } else {
-      tempDir = await getTemporaryDirectory();
-    }
+  Directory tempDir = await getTemporaryDirectory();
     
     final localPath = "${tempDir.path}/${widget.path.split("/").last}";
 
