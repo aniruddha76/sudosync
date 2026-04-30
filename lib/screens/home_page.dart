@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sudosync/screens/file_explorer.dart';
 import 'package:sudosync/screens/profile_page.dart';
+import 'package:sudosync/screens/server_list_page.dart';
 import 'package:sudosync/screens/services_page.dart';
 import 'package:sudosync/screens/system_monitor.dart';
 import '../service/ssh_service.dart';
@@ -300,7 +301,13 @@ class _HomePageState extends State<HomePage> {
                     icon: const Icon(Icons.logout, color: Colors.white),
                     onPressed: () {
                       widget.ssh.disconnect();
-                      Navigator.pop(context);
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ServerListPage(),
+                        ),
+                        (route) => false,
+                      ); //this was a bug, it should navigate to server list page instead of blank page after logout
                     },
                   ),
                 ),
