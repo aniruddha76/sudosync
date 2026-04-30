@@ -14,16 +14,20 @@ class AppDialog {
   }) {
     return showGeneralDialog(
       context: context,
-      barrierDismissible: barrierDismissible, // This disables the multiple taps issue
+      barrierDismissible:
+          barrierDismissible, // This disables the multiple taps issue
       barrierLabel: "",
       barrierColor: Colors.black.withOpacity(0.4),
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (_, __, ___) {
-        return _DialogUI(
-          title: title,
-          message: message,
-          type: type,
-          actions: actions,
+        return PopScope(
+          canPop: barrierDismissible,
+          child: _DialogUI(
+            title: title,
+            message: message,
+            type: type,
+            actions: actions,
+          ),
         );
       },
       transitionBuilder: (_, anim, __, child) {
@@ -134,9 +138,7 @@ class _DialogUI extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: const Color(0xFF1C1C1E).withOpacity(0.9),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.05),
-                  ),
+                  border: Border.all(color: Colors.white.withOpacity(0.05)),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.5),
@@ -155,11 +157,7 @@ class _DialogUI extends StatelessWidget {
                         color: color.withOpacity(0.15),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
-                        _getIcon(),
-                        color: color,
-                        size: 32,
-                      ),
+                      child: Icon(_getIcon(), color: color, size: 32),
                     ),
 
                     const SizedBox(height: 16),
@@ -200,9 +198,7 @@ class _DialogUI extends StatelessWidget {
                       const SizedBox(height: 10),
 
                       /// ACTIONS
-                      Row(
-                        children: actions!,
-                      ),
+                      Row(children: actions!),
                     ],
                   ],
                 ),
