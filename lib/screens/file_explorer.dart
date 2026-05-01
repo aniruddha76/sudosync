@@ -22,6 +22,8 @@ class FileExplorer extends StatefulWidget {
 }
 
 class _FileExplorerState extends State<FileExplorer> {
+  final Map<String, Uint8List> memoryThumbCache = {};
+
   List<SftpName> files = [];
   String currentPath = "/home";
 
@@ -34,6 +36,12 @@ class _FileExplorerState extends State<FileExplorer> {
   void initState() {
     super.initState();
     loadFiles(currentPath);
+  }
+
+  Future<String> getThumbPath(String path) async {
+    final dir = await getTemporaryDirectory();
+    final safeName = path.replaceAll("/", "_");
+    return "${dir.path}/thumb_$safeName.jpg";
   }
 
   Future<void> loadFiles(String path) async {
@@ -84,10 +92,31 @@ class _FileExplorerState extends State<FileExplorer> {
   }
 
   Future<Uint8List?> getImageThumb(String path) async {
+    // check in memory cache first
+    if (memoryThumbCache.containsKey(path)) {
+      return memoryThumbCache[path];
+    }
+
     try {
-      final file = await widget.ssh.sftp!.open(path);
-      final bytes = await file.readBytes();
-      await file.close();
+      final thumbPath = await getThumbPath(path);
+      final file = File(thumbPath);
+
+      // check disk cache
+      if (file.existsSync()) {
+        final bytes = await file.readAsBytes();
+        memoryThumbCache[path] = bytes;
+        return bytes;
+      }
+
+      // if not in cache download and create thumb
+      final remote = await widget.ssh.sftp!.open(path);
+      final bytes = await remote.readBytes();
+      await remote.close();
+
+      // save to disk
+      await file.writeAsBytes(bytes);
+
+      memoryThumbCache[path] = bytes;
       return bytes;
     } catch (_) {
       return null;
@@ -95,23 +124,45 @@ class _FileExplorerState extends State<FileExplorer> {
   }
 
   Future<Uint8List?> getVideoThumb(String path) async {
+    if (memoryThumbCache.containsKey(path)) {
+      return memoryThumbCache[path];
+    }
+
     try {
+      final thumbPath = await getThumbPath(path);
+      final file = File(thumbPath);
+
+      if (file.existsSync()) {
+        final bytes = await file.readAsBytes();
+        memoryThumbCache[path] = bytes;
+        return bytes;
+      }
+
+      // download video to temp location to generate thumbnail
       final tempDir = await getTemporaryDirectory();
-      final tempPath = "${tempDir.path}/temp_video";
+      final tempVideoPath =
+          "${tempDir.path}/video_temp_${DateTime.now().millisecondsSinceEpoch}.mp4";
 
-      final file = await widget.ssh.sftp!.open(path);
-      final bytes = await file.readBytes();
-      await file.close();
+      final remote = await widget.ssh.sftp!.open(path);
+      final bytes = await remote.readBytes();
+      await remote.close();
 
-      final local = File(tempPath);
-      await local.writeAsBytes(bytes);
+      final videoFile = File(tempVideoPath);
+      await videoFile.writeAsBytes(bytes);
 
       final thumb = await VideoThumbnail.thumbnailData(
-        video: tempPath,
+        video: tempVideoPath,
         imageFormat: ImageFormat.JPEG,
         maxWidth: 128,
         quality: 75,
       );
+
+      if (thumb != null) {
+        await file.writeAsBytes(thumb);
+        memoryThumbCache[path] = thumb;
+      }
+
+      await videoFile.delete();
 
       return thumb;
     } catch (_) {
@@ -128,7 +179,9 @@ class _FileExplorerState extends State<FileExplorer> {
 
     if (isImage(file.filename)) {
       return FutureBuilder(
-        future: getImageThumb(path),
+        future: memoryThumbCache.containsKey(path)
+            ? Future.value(memoryThumbCache[path])
+            : getImageThumb(path),
         builder: (context, snap) {
           if (!snap.hasData) {
             return const Icon(Icons.image, size: 35, color: Color(0xFFB6FF00));
@@ -149,7 +202,9 @@ class _FileExplorerState extends State<FileExplorer> {
 
     if (isVideo(file.filename)) {
       return FutureBuilder(
-        future: getVideoThumb(path),
+        future: memoryThumbCache.containsKey(path)
+            ? Future.value(memoryThumbCache[path])
+            : getVideoThumb(path),
         builder: (context, snap) {
           if (!snap.hasData) {
             return const Icon(
@@ -420,15 +475,17 @@ class _FileExplorerState extends State<FileExplorer> {
 
   Widget deviceCard({required SftpName file}) {
     var fileType = "";
-        if (file.attr.size! < 1024) {
-          fileType = "Size: ${file.attr.size!} Bytes";
-        } else if (file.attr.size! < 1024 * 1024) {
-          fileType = "Size: ${(file.attr.size! / 1024).toStringAsFixed(2)} KB";
-        } else if (file.attr.size! < 1024 * 1024 * 1024) {
-          fileType = "Size: ${(file.attr.size! / (1024 * 1024)).toStringAsFixed(2)} MB";
-        } else {
-          fileType = "Size: ${(file.attr.size! / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB";
-        }
+    if (file.attr.size! < 1024) {
+      fileType = "Size: ${file.attr.size!} Bytes";
+    } else if (file.attr.size! < 1024 * 1024) {
+      fileType = "Size: ${(file.attr.size! / 1024).toStringAsFixed(2)} KB";
+    } else if (file.attr.size! < 1024 * 1024 * 1024) {
+      fileType =
+          "Size: ${(file.attr.size! / (1024 * 1024)).toStringAsFixed(2)} MB";
+    } else {
+      fileType =
+          "Size: ${(file.attr.size! / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB";
+    }
 
     return GestureDetector(
       onLongPress: () => AppDialog.show(
@@ -480,9 +537,9 @@ class _FileExplorerState extends State<FileExplorer> {
       child: ListTile(
         leading: leadingWidget(file),
         title: Text(
-          file.filename, 
-          style: const TextStyle(color: Colors.white, fontSize: 18,),
-          ),
+          file.filename,
+          style: const TextStyle(color: Colors.white, fontSize: 18),
+        ),
         subtitle: Text(
           "${file.attr.size} bytes",
           style: const TextStyle(color: Colors.white70, fontSize: 12),
@@ -504,7 +561,10 @@ class _FileExplorerState extends State<FileExplorer> {
           child: Column(
             children: [
               ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
                 leading: const Icon(
                   Icons.upload_file,
                   color: Color(0xFFB6FF00),
