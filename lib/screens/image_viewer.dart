@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:sudosync/screens/app_dialog.dart';
 import '../service/ssh_service.dart';
 
 class ImageViewer extends StatefulWidget {
@@ -19,78 +20,174 @@ class ImageViewer extends StatefulWidget {
 }
 
 class _ImageViewerState extends State<ImageViewer> {
-
   File? image;
+  double progress = 0;
+  bool isDownloading = true;
+  bool isCancelled = false;
+  bool isUIVisible = true;
+  String? error;
+
+  late String fileName;
 
   @override
   void initState() {
     super.initState();
-    downloadImage();
+    fileName = widget.path.split("/").last;
+    loadImage();
   }
 
-bool isDownloadCancelled = false;
+  Future<void> loadImage() async {
+    try {
+      final dir = await getTemporaryDirectory();
+      final localPath = "${dir.path}/$fileName";
+      final file = File(localPath);
 
-Future<void> downloadImage() async {
-  Directory tempDir = await getTemporaryDirectory();
-    
-    final localPath = "${tempDir.path}/${widget.path.split("/").last}";
+      //Implementing a simple cache mechanism if the file already exists, use it instead of downloading again
+      if (file.existsSync()) {
+        setState(() {
+          image = file;
+          isDownloading = false;
+        });
+        return;
+      }
 
-    await widget.ssh.downloadFile(
-      remotePath: widget.path,
-      localPath: localPath,
-      onProgress: (p) {
+      await widget.ssh.downloadFile(
+        remotePath: widget.path,
+        localPath: localPath,
+        onProgress: (p) {
+          if (!mounted) return;
+          setState(() {
+            progress = p;
+          });
+        },
+        isCancelled: () => isCancelled,
+      );
 
-      },
-      isCancelled: () => false,
-    );
+      if (isCancelled) return;
 
+      setState(() {
+        image = file;
+        isDownloading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        error = "Failed to load image";
+        isDownloading = false;
+      });
+    }
+  }
+
+  void retry() {
     setState(() {
-      image = File(localPath);
+      progress = 0;
+      isDownloading = true;
+      error = null;
+      isCancelled = false;
     });
+    loadImage();
+  }
+
+  @override
+  void dispose() {
+    isCancelled = true;
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.path.split("/").last),
-        actions: [
+      backgroundColor: Colors.black,
+      appBar: isUIVisible
+          ? AppBar(
+              backgroundColor: Colors.black,
+              title: Text(fileName),
+              actions: [
 
-          IconButton(
-            icon: const Icon(Icons.download),
-            onPressed: null
-          ),
+                if (isDownloading)
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () {
+                      setState(() {
+                        isCancelled = true;
+                      });
+                      Navigator.pop(context);
+                    },
+                  ),
 
-          IconButton(
-            icon: const Icon(Icons.info),
-            onPressed: () {
-
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text("File Info"),
-                  content: Text(widget.path),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text("Close"),
-                    )
-                  ],
+                IconButton(
+                  icon: const Icon(Icons.info),
+                  onPressed: () {
+                    AppDialog.show(
+                      context: context,
+                      title: "File Info",
+                      message: "Name: $fileName\n\nPath: ${widget.path}\n\nSize: ${image?.lengthSync() ?? 'Unknown'} bytes",
+                      actions: [
+                        AppDialog.action(
+                          "Close",
+                          () => Navigator.pop(context),
+                        ),
+                      ],
+                    );
+                  },
                 ),
-              );
+              ],
+            )
+          : null,
 
-            },
-          ),
+      body: GestureDetector(
+        onTap: () {
+          setState(() {
+            isUIVisible = !isUIVisible;
+          });
+        },
 
-        ],
+        child: Center(
+          child: _buildBody(),
+        ),
       ),
+    );
+  }
 
-      body: Center(
+  Widget _buildBody() {
 
-        child: image == null
-            ? const CircularProgressIndicator()
-            : Image.file(image!),
+    if (error != null) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error, color: Colors.red, size: 40),
+          const SizedBox(height: 10),
+          Text(error!, style: const TextStyle(color: Colors.white)),
+          const SizedBox(height: 10),
+          ElevatedButton(
+            onPressed: retry,
+            child: const Text("Retry"),
+          ),
+        ],
+      );
+    }
+
+    if (isDownloading || image == null) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(value: progress),
+          const SizedBox(height: 12),
+          Text(
+            "${(progress * 100).toStringAsFixed(0)}%",
+            style: const TextStyle(color: Colors.white),
+          ),
+        ],
+      );
+    }
+
+    return InteractiveViewer(
+      minScale: 1,
+      maxScale: 5,
+      child: SizedBox(
+        width: double.infinity,
+        height: double.infinity,
+        child: Image.file(image!, fit: BoxFit.contain),
       ),
     );
   }
