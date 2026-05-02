@@ -476,7 +476,7 @@ class _FileExplorerState extends State<FileExplorer> {
   Widget deviceCard({required SftpName file}) {
     var fileType = "";
     if (file.attr.size! < 1024) {
-      fileType = "Size: ${file.attr.size!} Bytes";
+      fileType = "Size: ${file.attr.size!} B";
     } else if (file.attr.size! < 1024 * 1024) {
       fileType = "Size: ${(file.attr.size! / 1024).toStringAsFixed(2)} KB";
     } else if (file.attr.size! < 1024 * 1024 * 1024) {
@@ -541,7 +541,7 @@ class _FileExplorerState extends State<FileExplorer> {
           style: const TextStyle(color: Colors.white, fontSize: 18),
         ),
         subtitle: Text(
-          "${file.attr.size} bytes",
+          fileType.split(": ").last,
           style: const TextStyle(color: Colors.white70, fontSize: 12),
         ),
       ),
