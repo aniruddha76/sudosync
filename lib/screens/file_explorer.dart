@@ -487,6 +487,10 @@ class _FileExplorerState extends State<FileExplorer> {
           "Size: ${(file.attr.size! / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB";
     }
 
+    //folder modified date in yyyy-mm-dd format
+    var modifiedDate = DateTime.fromMillisecondsSinceEpoch(file.attr.modifyTime! * 1000);
+    var modifiedDateString = "${modifiedDate.year}-${modifiedDate.month.toString().padLeft(2, '0')}-${modifiedDate.day.toString().padLeft(2, '0')}";
+
     return GestureDetector(
       onLongPress: () => AppDialog.show(
         context: context,
@@ -541,7 +545,7 @@ class _FileExplorerState extends State<FileExplorer> {
           style: const TextStyle(color: Colors.white, fontSize: 18),
         ),
         subtitle: Text(
-          fileType.split(": ").last,
+          "${fileType.split(": ").last} | $modifiedDateString",
           style: const TextStyle(color: Colors.white70, fontSize: 12),
         ),
       ),
