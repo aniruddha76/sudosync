@@ -78,50 +78,98 @@ class _ImageViewerState extends State<ImageViewer> {
     }
   }
 
-  Future<void> downloadImage() async {
+  bool isDownloadCancelled = false;
+
+  Future<void> downloadFile(String remotePath) async {
+    double progress = 0;
+    late StateSetter setDialogState;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            setDialogState = setState;
+
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1C1C1E),
+              title: const Text(
+                "Downloading...",
+                style: TextStyle(color: Colors.white),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  LinearProgressIndicator(value: progress),
+                  const SizedBox(height: 10),
+                  Text(
+                    "${(progress * 100).toStringAsFixed(0)}%",
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    isDownloadCancelled = true;
+                    if (Navigator.canPop(context)) Navigator.pop(context);
+                  },
+                  child: const Text("Cancel"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
     try {
-      Directory dir = Platform.isAndroid
+      final name = remotePath.split("/").last;
+
+      Directory downloadsDir = Platform.isAndroid
           ? Directory("/storage/emulated/0/Download")
           : await getApplicationDocumentsDirectory();
 
-      final localPath = "${dir.path}/$fileName";
+      if (!await downloadsDir.exists()) {
+        await downloadsDir.create(recursive: true);
+      }
+
+      String filePath = "${downloadsDir.path}/$name";
+      File localFile = File(filePath);
+
+      if (await localFile.exists()) {
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        filePath = "${downloadsDir.path}/${timestamp}_$name";
+      }
+
       await widget.ssh.downloadFile(
-        remotePath: widget.path,
-        localPath: localPath,
+        remotePath: remotePath,
+        localPath: filePath,
         onProgress: (p) {
-          if (!mounted) return;
-          setState(() {
-            progress = p;
-          });
+          progress = p;
+          setDialogState(() {});
         },
-        isCancelled: () => isCancelled,
+        isCancelled: () => isDownloadCancelled,
       );
 
-      if (isCancelled) return;
+      if (Navigator.canPop(context)) Navigator.pop(context);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Image downloaded to $localPath")),
-      );
+      if (isDownloadCancelled) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Download cancelled")));
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Downloaded: $filePath")));
     } catch (e) {
-      if (!mounted) return;
-      AppDialog.show(
-        context: context,
-        title: "Download Failed",
-        message: "Could not download image. Please try again.",
-        actions: [
-          AppDialog.action(
-            "Retry",
-            () {
-              Navigator.pop(context);
-              downloadImage();
-            },
-          ),
-          AppDialog.action(
-            "Close",
-            () => Navigator.pop(context),
-          ),
-        ],
-      );
+      if (Navigator.canPop(context)) Navigator.pop(context);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Download failed: $e")));
     }
   }
 
@@ -164,7 +212,7 @@ class _ImageViewerState extends State<ImageViewer> {
 
                 IconButton(
                   icon: const Icon(Icons.download_for_offline_rounded),
-                  onPressed: downloadImage,
+                  onPressed: () => downloadFile(widget.path),
                 ),
 
                 IconButton(
