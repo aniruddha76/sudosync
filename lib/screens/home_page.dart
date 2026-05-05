@@ -121,6 +121,41 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget systemAndUpdatesCards(String name, VoidCallback onTap, String buttonText) {
+    return Container(
+      height: 70,
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              name,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+          
+          ElevatedButton(
+            onPressed: onTap,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(9),
+              ),
+            ),
+            child: Icon(Icons.arrow_forward_ios_rounded, color: Colors.black,),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget downloadItem(String name) {
     return Container(
       width: 200,
@@ -397,6 +432,25 @@ class _HomePageState extends State<HomePage> {
                   },
                 ),
               ],
+            ),
+
+            const SizedBox(height: 25),
+
+            const Text(
+              "System & Updates",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            systemAndUpdatesCards(
+              "System Updates",
+              () {},
+              "Update",
             ),
 
             const SizedBox(height: 25),
