@@ -78,6 +78,53 @@ class _ImageViewerState extends State<ImageViewer> {
     }
   }
 
+  Future<void> downloadImage() async {
+    try {
+      Directory dir = Platform.isAndroid
+          ? Directory("/storage/emulated/0/Download")
+          : await getApplicationDocumentsDirectory();
+
+      final localPath = "${dir.path}/$fileName";
+      await widget.ssh.downloadFile(
+        remotePath: widget.path,
+        localPath: localPath,
+        onProgress: (p) {
+          if (!mounted) return;
+          setState(() {
+            progress = p;
+          });
+        },
+        isCancelled: () => isCancelled,
+      );
+
+      if (isCancelled) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Image downloaded to $localPath")),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      AppDialog.show(
+        context: context,
+        title: "Download Failed",
+        message: "Could not download image. Please try again.",
+        actions: [
+          AppDialog.action(
+            "Retry",
+            () {
+              Navigator.pop(context);
+              downloadImage();
+            },
+          ),
+          AppDialog.action(
+            "Close",
+            () => Navigator.pop(context),
+          ),
+        ],
+      );
+    }
+  }
+
   void retry() {
     setState(() {
       progress = 0;
@@ -116,9 +163,15 @@ class _ImageViewerState extends State<ImageViewer> {
                   ),
 
                 IconButton(
+                  icon: const Icon(Icons.download_for_offline_rounded),
+                  onPressed: downloadImage,
+                ),
+
+                IconButton(
                   icon: const Icon(Icons.info),
                   onPressed: () {
                     AppDialog.show(
+                      type: DialogType.error,
                       context: context,
                       title: "File Info",
                       message: "Name: $fileName\n\nPath: ${widget.path}\n\nSize: ${image?.lengthSync() ?? 'Unknown'} bytes",
