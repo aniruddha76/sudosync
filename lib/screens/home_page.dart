@@ -121,7 +121,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget systemAndUpdatesCards(String name, VoidCallback onTap, String buttonText) {
+  Widget systemAndUpdatesCards(String name, VoidCallback onTap) {
     return Container(
       height: 70,
       width: double.infinity,
@@ -137,7 +137,11 @@ class _HomePageState extends State<HomePage> {
             child: Text(
               name,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                ),
             ),
           ),
           
@@ -450,8 +454,14 @@ class _HomePageState extends State<HomePage> {
             systemAndUpdatesCards(
               "System Updates",
               () {},
-              "Update",
             ),
+
+            // const SizedBox(height: 15),
+
+            // systemAndUpdatesCards(
+            //   "View System Logs",
+            //   () {},
+            // ),
 
             const SizedBox(height: 25),
 
