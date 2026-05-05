@@ -171,7 +171,6 @@ class _ImageViewerState extends State<ImageViewer> {
                   icon: const Icon(Icons.info),
                   onPressed: () {
                     AppDialog.show(
-                      type: DialogType.error,
                       context: context,
                       title: "File Info",
                       message: "Name: $fileName\n\nPath: ${widget.path}\n\nSize: ${image?.lengthSync() ?? 'Unknown'} bytes",
