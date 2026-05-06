@@ -4,6 +4,7 @@ import 'package:sudosync/screens/profile_page.dart';
 import 'package:sudosync/screens/server_list_page.dart';
 import 'package:sudosync/screens/services_page.dart';
 import 'package:sudosync/screens/system_monitor.dart';
+import 'package:sudosync/screens/system_updates_page.dart';
 import '../service/ssh_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'terminal_screen.dart';
@@ -123,7 +124,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget systemAndUpdatesCards(String name, VoidCallback onTap) {
     return Container(
-      height: 70,
+      height: 75,
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -139,12 +140,12 @@ class _HomePageState extends State<HomePage> {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Colors.white,
-                fontWeight: FontWeight.bold,
+                // fontWeight: FontWeight.bold,
                 fontSize: 16,
-                ),
+              ),
             ),
           ),
-          
+
           ElevatedButton(
             onPressed: onTap,
             style: ElevatedButton.styleFrom(
@@ -153,7 +154,7 @@ class _HomePageState extends State<HomePage> {
                 borderRadius: BorderRadius.circular(9),
               ),
             ),
-            child: Icon(Icons.arrow_forward_ios_rounded, color: Colors.black,),
+            child: Icon(Icons.arrow_forward_ios_rounded, color: Colors.black),
           ),
         ],
       ),
@@ -451,10 +452,14 @@ class _HomePageState extends State<HomePage> {
 
             const SizedBox(height: 10),
 
-            systemAndUpdatesCards(
-              "System Updates",
-              () {},
-            ),
+            systemAndUpdatesCards("System Updates", () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SystemUpdatesPage(ssh: widget.ssh),
+                ),
+              );
+            }),
 
             // const SizedBox(height: 15),
 
@@ -462,7 +467,6 @@ class _HomePageState extends State<HomePage> {
             //   "View System Logs",
             //   () {},
             // ),
-
             const SizedBox(height: 25),
 
             const Text(
