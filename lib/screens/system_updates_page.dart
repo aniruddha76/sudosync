@@ -64,7 +64,7 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
 
     setState(() {
       updates = parsed;
-      updateCount = parsed.length;
+      updateCount = parsed.length - 1;
       isLoading = false;
     });
   }
@@ -76,7 +76,7 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
 
     setState(() {
       updates = parsed;
-      updateCount = parsed.length;
+      updateCount = parsed.length - 1;
       isLoading = false;
     });
   }
@@ -91,7 +91,7 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
 
     setState(() {
       updates = parsed;
-      updateCount = parsed.length;
+      updateCount = parsed.length - 1;
       isLoading = false;
     });
   }
@@ -201,11 +201,11 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
     }
 
     if (updates.isEmpty) {
-      return Center(child: Text("System is up to date 🎉"));
+      return Center(child: Text("System is up to date!"));
     }
 
     return ListView.builder(
-      itemCount: updates.length,
+      itemCount: updates.length - 1,
       itemBuilder: (context, index) {
         return updateItem(updates[index]);
       },
