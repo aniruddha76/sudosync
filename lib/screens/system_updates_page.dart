@@ -15,8 +15,12 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
   bool isLoading = true;
   String osType = "Detecting...";
   int updateCount = 0;
+
   List<String> updates = [];
+  List<String> filteredUpdates = [];
+
   String error = "";
+  String searchQuery = "";
 
   @override
   void initState() {
@@ -36,7 +40,8 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
       if (osRelease.contains("Arch")) {
         osType = "Arch Linux";
         await fetchArchUpdates();
-      } else if (osRelease.contains("Ubuntu") || osRelease.contains("Debian")) {
+      } else if (osRelease.contains("Ubuntu") ||
+          osRelease.contains("Debian")) {
         osType = "Debian/Ubuntu";
         await fetchAptUpdates();
       } else if (osRelease.contains("Fedora")) {
@@ -54,6 +59,22 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
     }
   }
 
+  void applySearch(String query) {
+    setState(() {
+      searchQuery = query;
+
+      if (query.isEmpty) {
+        filteredUpdates = updates;
+      } else {
+        filteredUpdates = updates
+            .where(
+              (item) => item.toLowerCase().contains(query.toLowerCase()),
+            )
+            .toList();
+      }
+    });
+  }
+
   Future<void> fetchAptUpdates() async {
     final result = await widget.ssh.runCommand("apt list --upgradable");
 
@@ -64,7 +85,8 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
 
     setState(() {
       updates = parsed;
-      updateCount = parsed.length - 1;
+      filteredUpdates = parsed;
+      updateCount = parsed.length;
       isLoading = false;
     });
   }
@@ -72,11 +94,14 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
   Future<void> fetchArchUpdates() async {
     final result = await widget.ssh.runCommand("pacman -Qu");
 
-    List<String> parsed = result.trim().isEmpty ? [] : result.split("\n");
+    List<String> parsed = result.trim().isEmpty
+        ? []
+        : result.split("\n").where((line) => line.trim().isNotEmpty).toList();
 
     setState(() {
       updates = parsed;
-      updateCount = parsed.length - 1;
+      filteredUpdates = parsed;
+      updateCount = parsed.length;
       isLoading = false;
     });
   }
@@ -91,7 +116,8 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
 
     setState(() {
       updates = parsed;
-      updateCount = parsed.length - 1;
+      filteredUpdates = parsed;
+      updateCount = parsed.length;
       isLoading = false;
     });
   }
@@ -99,36 +125,85 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
   Widget summaryCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF2A2A2D),
+            Color(0xFF1C1C1E),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(22),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             "System Updates",
-            style: GoogleFonts.poppins(color: Colors.grey, fontSize: 12),
+            style: GoogleFonts.poppins(
+              color: Colors.grey[400],
+              fontSize: 13,
+            ),
           ),
 
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
 
           Text(
             "$updateCount Available",
             style: GoogleFonts.poppins(
-              fontSize: 28,
+              fontSize: 32,
               fontWeight: FontWeight.bold,
-              color: Colors.black,
+              color: Colors.white,
             ),
           ),
 
-          Text(
-            osType,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
+          const SizedBox(height: 6),
+
+          Row(
+            children: [
+              const Icon(
+                Icons.laptop_mac_rounded,
+                color: Color.fromARGB(255, 172, 240, 1),
+                size: 18,
+              ),
+
+              const SizedBox(width: 8),
+
+              Text(
+                osType,
+                style: GoogleFonts.poppins(
+                  color: Colors.white70,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          TextField(
+            onChanged: applySearch,
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+            ),
+            decoration: InputDecoration(
+              hintText: "Search packages...",
+              hintStyle: GoogleFonts.poppins(
+                color: Colors.grey,
+              ),
+              prefixIcon: const Icon(
+                Icons.search,
+                color: Colors.grey,
+              ),
+              filled: true,
+              fillColor: Colors.black.withOpacity(0.25),
+              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide.none,
+              ),
             ),
           ),
         ],
@@ -137,30 +212,41 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
   }
 
   Widget updateItem(String pkg) {
+    final updates = pkg.split(" ");
+
+    final packageName = updates.isNotEmpty ? updates[0] : "Unknown";
+    final currentVersion = updates.length > 1 ? updates[1] : "";
+    final latestVersion = updates.isNotEmpty ? updates.last : "";
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF1C1C1E),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  pkg.split(" ").first,
+                  packageName,
                   style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w500,
                     color: Colors.white,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
 
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
 
-                Text(pkg.split(" ").elementAt(1)),
+                Text(
+                  currentVersion,
+                  style: GoogleFonts.poppins(
+                    color: Colors.grey[400],
+                  ),
+                ),
               ],
             ),
           ),
@@ -169,15 +255,17 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                "Available Version",
+                "Latest",
                 style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.w500,
                   color: const Color.fromARGB(255, 172, 240, 1),
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 10),
+
+              const SizedBox(height: 8),
+
               Text(
-                pkg.split(" ").last,
+                latestVersion,
                 style: GoogleFonts.poppins(
                   color: const Color.fromARGB(255, 172, 240, 1),
                 ),
@@ -191,24 +279,44 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
 
   Widget updatesList() {
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(
+          color: Color.fromARGB(255, 172, 240, 1),
+        ),
+      );
     }
 
     if (error.isNotEmpty) {
       return Center(
-        child: Text(error, style: TextStyle(color: Colors.red)),
+        child: Text(
+          error,
+          style: GoogleFonts.poppins(
+            color: Colors.red,
+          ),
+        ),
       );
     }
 
     if (updates.isEmpty) {
-      return Center(child: Text("System is up to date!"));
+      return Center(
+        child: Text(
+          "System is up to date!",
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+          ),
+        ),
+      );
     }
 
-    return ListView.builder(
-      itemCount: updates.length - 1,
-      itemBuilder: (context, index) {
-        return updateItem(updates[index]);
-      },
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        summaryCard(),
+
+        const SizedBox(height: 20),
+
+        ...filteredUpdates.map((pkg) => updateItem(pkg)),
+      ],
     );
   }
 
@@ -220,28 +328,23 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
-        title: const Text(
+        title: Text(
           "System Updates",
-          style: TextStyle(color: Colors.white),
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: fetchUpdates),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: fetchUpdates,
+          ),
         ],
       ),
 
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            summaryCard(),
-
-            const SizedBox(height: 20),
-
-            Expanded(child: updatesList()),
-          ],
-        ),
-      ),
+      body: updatesList(),
     );
   }
 }
