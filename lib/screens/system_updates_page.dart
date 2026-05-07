@@ -80,7 +80,12 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
 
     List<String> parsed = result
         .split("\n")
-        .where((l) => l.contains("/"))
+        .where(
+          (line) =>
+              line.trim().isNotEmpty &&
+              line.contains("/") &&
+              !line.startsWith("Listing..."),
+        )
         .toList();
 
     setState(() {
@@ -91,12 +96,14 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
     });
   }
 
+  //last time i used band aid this one should work better
   Future<void> fetchArchUpdates() async {
     final result = await widget.ssh.runCommand("pacman -Qu");
 
-    List<String> parsed = result.trim().isEmpty
-        ? []
-        : result.split("\n").where((line) => line.trim().isNotEmpty).toList();
+    List<String> parsed = result
+        .split("\n")
+        .where((line) => line.trim().isNotEmpty)
+        .toList();
 
     setState(() {
       updates = parsed;
@@ -111,7 +118,7 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
 
     List<String> parsed = result
         .split("\n")
-        .where((l) => l.contains("."))
+        .where((line) => line.trim().isNotEmpty && line.contains("."))
         .toList();
 
     setState(() {
@@ -125,6 +132,7 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
   Widget summaryCard() {
     return Container(
       width: double.infinity,
+      margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -279,44 +287,51 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
 
   Widget updatesList() {
     if (isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          color: Color.fromARGB(255, 172, 240, 1),
+      return const Expanded(
+        child: Center(
+          child: CircularProgressIndicator(
+            color: Color.fromARGB(255, 172, 240, 1),
+          ),
         ),
       );
     }
 
     if (error.isNotEmpty) {
-      return Center(
-        child: Text(
-          error,
-          style: GoogleFonts.poppins(
-            color: Colors.red,
+      return Expanded(
+        child: Center(
+          child: Text(
+            error,
+            style: GoogleFonts.poppins(
+              color: Colors.red,
+            ),
           ),
         ),
       );
     }
 
-    if (updates.isEmpty) {
-      return Center(
-        child: Text(
-          "System is up to date!",
-          style: GoogleFonts.poppins(
-            color: Colors.white,
+    if (filteredUpdates.isEmpty) {
+      return Expanded(
+        child: Center(
+          child: Text(
+            updates.isEmpty
+                ? "System is up to date!"
+                : "No packages found",
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+            ),
           ),
         ),
       );
     }
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        summaryCard(),
-
-        const SizedBox(height: 20),
-
-        ...filteredUpdates.map((pkg) => updateItem(pkg)),
-      ],
+    return Expanded(
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: filteredUpdates.length,
+        itemBuilder: (context, index) {
+          return updateItem(filteredUpdates[index]);
+        },
+      ),
     );
   }
 
@@ -324,7 +339,6 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
@@ -343,8 +357,12 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
           ),
         ],
       ),
-
-      body: updatesList(),
+      body: Column(
+        children: [
+          summaryCard(),
+          updatesList(),
+        ],
+      ),
     );
   }
 }
