@@ -182,7 +182,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   const SizedBox(height: 20),
                   Text(
-                    "SudoSync v1.2.4",
+                    "SudoSync v1.3.0",
                     style: GoogleFonts.poppins(
                       color: Colors.grey,
                       fontSize: 12,

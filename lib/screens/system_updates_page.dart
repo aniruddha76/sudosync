@@ -96,7 +96,7 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
     });
   }
 
-  //last time i used band aid this one should work better
+  //last time i used band aid method for this one should work better
   Future<void> fetchArchUpdates() async {
     final result = await widget.ssh.runCommand("pacman -Qu");
 
@@ -118,7 +118,12 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
 
     List<String> parsed = result
         .split("\n")
-        .where((line) => line.trim().isNotEmpty && line.contains("."))
+        .where(
+          (line) => 
+            line.trim().isNotEmpty && 
+            line.contains(".") &&
+            !line.startsWith("Last metadata")
+          )
         .toList();
 
     setState(() {
