@@ -75,6 +75,23 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
     });
   }
 
+  //last time i used band aid method for this one should work better
+  Future<void> fetchArchUpdates() async {
+    final result = await widget.ssh.runCommand("pacman -Qu");
+
+    List<String> parsed = result
+        .split("\n")
+        .where((line) => line.trim().isNotEmpty)
+        .toList();
+
+    setState(() {
+      updates = parsed;
+      filteredUpdates = parsed;
+      updateCount = parsed.length;
+      isLoading = false;
+    });
+  }
+
   Future<void> fetchAptUpdates() async {
     final result = await widget.ssh.runCommand("apt list --upgradable");
 
@@ -86,23 +103,6 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
               line.contains("/") &&
               !line.startsWith("Listing..."),
         )
-        .toList();
-
-    setState(() {
-      updates = parsed;
-      filteredUpdates = parsed;
-      updateCount = parsed.length;
-      isLoading = false;
-    });
-  }
-
-  //last time i used band aid method for this one should work better
-  Future<void> fetchArchUpdates() async {
-    final result = await widget.ssh.runCommand("pacman -Qu");
-
-    List<String> parsed = result
-        .split("\n")
-        .where((line) => line.trim().isNotEmpty)
         .toList();
 
     setState(() {
@@ -227,9 +227,33 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
   Widget updateItem(String pkg) {
     final updates = pkg.split(" ");
 
-    final packageName = updates.isNotEmpty ? updates[0] : "Unknown";
-    final currentVersion = updates.length > 1 ? updates[1] : "";
-    final latestVersion = updates.isNotEmpty ? updates.last : "";
+    var packageName = "Unknown";
+    var currentVersion = "";
+    var latestVersion = "";
+
+    if(osType == "Debian/Ubuntu"){
+      //example 
+      //bash/jammy-updates 5.1-6ubuntu1.1 amd64 [upgradable from: 5.1-6ubuntu1]
+      packageName = updates[0];
+      currentVersion = updates.last.replaceAll("]", "");
+      latestVersion = updates[1];
+    } else if (osType == "Fedora"){
+      //example 
+      //bash.x86_64                     5.2.15-4.fc40                updates
+      packageName = updates[0].split(".")[0];
+      currentVersion = "";
+      latestVersion = updates.firstWhere((element) => element.contains("fc"));
+    } else if (osType == "Arch Linux"){
+      //example
+      //bash 5.2.15-1 -> 5.2.15-2
+      packageName = updates.first;
+      currentVersion = updates[1];
+      latestVersion = updates.last;
+    }
+
+    // final packageName = updates.isNotEmpty ? updates[0] : "Unknown";
+    // final currentVersion = updates.length > 1 ? updates[1] : "";
+    // final latestVersion = updates.isNotEmpty ? updates.last : "";
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
