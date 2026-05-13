@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'dart:async';
 import 'package:dartssh2/dartssh2.dart';
 import 'dart:io';
+import 'dart:convert';
 
 class SSHService {
   SSHClient? client;
@@ -67,8 +68,11 @@ class SSHService {
   }
 
   Future<String> runCommand(String command) async {
-    final result = await _safe(() => client!.run(command));
-    return String.fromCharCodes(result);
+    final marker = 'SUDOSYNC_DATA_START';
+    final fullCommand = 'echo "$marker"; $command';
+    final session = await _safe(() => client!.execute(fullCommand));
+    final rawOutput = await session.stdout.cast<List<int>>().transform(utf8.decoder).join();
+    return rawOutput.contains(marker) ? rawOutput.split(marker).last.trim() : rawOutput.trim();
   }
 
   Future<String> run(String s) async {
