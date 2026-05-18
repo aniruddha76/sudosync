@@ -12,6 +12,9 @@ import 'image_viewer.dart';
 
 import './app_dialog.dart';
 
+import 'dart:async';
+import 'video_player_page.dart';
+
 class FileExplorer extends StatefulWidget {
   final SSHService ssh;
 
@@ -80,6 +83,7 @@ class _FileExplorerState extends State<FileExplorer> {
     return n.endsWith(".mp4") ||
         n.endsWith(".mkv") ||
         n.endsWith(".mov") ||
+        n.endsWith(".webm") ||
         n.endsWith(".avi");
   }
 
@@ -249,6 +253,19 @@ class _FileExplorerState extends State<FileExplorer> {
           builder: (_) => ImageViewer(ssh: widget.ssh, path: path),
         ),
       );
+    }
+    if (isVideo(file.filename)) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => VideoPlayerPage(
+            ssh: widget.ssh,
+            remotePath: path,
+            fileName: file.filename,
+          ),
+        ),
+      );
+      return;
     }
   }
 
@@ -488,8 +505,11 @@ class _FileExplorerState extends State<FileExplorer> {
     }
 
     //folder modified date in yyyy-mm-dd format
-    var modifiedDate = DateTime.fromMillisecondsSinceEpoch(file.attr.modifyTime! * 1000);
-    var modifiedDateString = "${modifiedDate.year}-${modifiedDate.month.toString().padLeft(2, '0')}-${modifiedDate.day.toString().padLeft(2, '0')}";
+    var modifiedDate = DateTime.fromMillisecondsSinceEpoch(
+      file.attr.modifyTime! * 1000,
+    );
+    var modifiedDateString =
+        "${modifiedDate.year}-${modifiedDate.month.toString().padLeft(2, '0')}-${modifiedDate.day.toString().padLeft(2, '0')}";
 
     return GestureDetector(
       onLongPress: () => AppDialog.show(
@@ -507,7 +527,9 @@ class _FileExplorerState extends State<FileExplorer> {
       onTap: () async {
         final path = "$currentPath/${file.filename}";
 
-        if (isDirectory(file) || isImage(file.filename)) {
+        if (isDirectory(file) ||
+            isImage(file.filename) ||
+            isVideo(file.filename)) {
           openItem(file);
           return;
         }
