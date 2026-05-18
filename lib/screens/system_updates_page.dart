@@ -370,14 +370,7 @@ class _SystemUpdatesPage extends State<SystemUpdatesPage> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        elevation: 0,
-        title: Text(
-          "System Updates",
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        title: Text("System Updates"),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
