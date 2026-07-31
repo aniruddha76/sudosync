@@ -259,3 +259,7 @@ This project is under MIT License
 
 If you like this project, consider giving it a ⭐
 and open issues if you find bugs or have suggestions.
+
+## Trademark Notice
+
+"SudoSync", the SudoSync logo, and associated branding are not licensed under the MIT License. See [TRADEMARKS.md](TRADEMARKS.md) for details.
